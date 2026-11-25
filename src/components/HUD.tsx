@@ -15,6 +15,7 @@ import {
   ArrowUp,
   Bot,
   CloudLightning,
+  Columns2,
   Compass,
   Crosshair,
   Heart,
@@ -32,7 +33,7 @@ import { useEffect, useState } from 'react';
 import { useLevelInfo } from '../levels/levelStore';
 import { useUIState } from '../state/store';
 import { ARMORS, WEAPONS } from '../types/gear';
-import type { GameActions } from '../types/ui';
+import { isTwoPlayerCoop, type GameActions } from '../types/ui';
 import { Banners } from './Banners';
 import { BuildPanel } from './BuildPanel';
 import { CameraPanel } from './CameraPanel';
@@ -72,6 +73,7 @@ export function HUD({ actions }: { actions: GameActions }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [actions, levelsOpen, shopOpen, s.menuOpen, s.hasStarted]);
 
+  const split = s.multiplayerMode === 'split';
   const isSurvival = s.playMode === 'survival' && s.levelId === null;
   const creativeSandbox = s.playMode === 'creative' && s.levelId === null;
   const hpPct = Math.max(0, Math.min(100, (s.playerHp / s.playerMaxHp) * 100));
@@ -90,13 +92,25 @@ export function HUD({ actions }: { actions: GameActions }) {
         <div
           data-testid="fp-crosshair"
           aria-hidden="true"
-          className="pointer-events-none fixed inset-0 flex items-center justify-center"
+          className={`pointer-events-none fixed inset-y-0 left-0 flex items-center justify-center ${split ? 'w-1/2' : 'w-full'}`}
         >
           <div className="relative flex size-6 items-center justify-center">
             <span className="h-0.5 w-5 rounded-full bg-white/90 shadow" />
             <span className="absolute h-5 w-0.5 rounded-full bg-white/90 shadow" />
             <span className="absolute size-2 rounded-full border-2 border-amber-300" />
           </div>
+        </div>
+      )}
+
+      {split && !s.menuOpen && (
+        <div data-testid="split-overlay" aria-hidden="true" className="pointer-events-none fixed inset-0">
+          <div className="absolute inset-y-0 left-1/2 w-1 -translate-x-1/2 bg-white shadow-[0_0_8px_rgba(0,0,0,0.5)]" />
+          <span className="absolute bottom-3 left-3 rounded-full bg-amber-300 px-3 py-1 text-xs font-black text-amber-950 shadow">
+            P1 · WASD + mouse
+          </span>
+          <span className="absolute bottom-3 right-3 rounded-full bg-cyan-300 px-3 py-1 text-xs font-black text-cyan-950 shadow">
+            P2 · Arrows + Enter
+          </span>
         </div>
       )}
 
@@ -190,6 +204,8 @@ export function HUD({ actions }: { actions: GameActions }) {
           >
             {s.multiplayerMode === 'coop' ? (
               <Users size={16} aria-hidden="true" />
+            ) : split ? (
+              <Columns2 size={16} aria-hidden="true" />
             ) : s.multiplayerMode === 'battle' ? (
               <Swords size={16} aria-hidden="true" />
             ) : (
@@ -197,9 +213,11 @@ export function HUD({ actions }: { actions: GameActions }) {
             )}
             {s.multiplayerMode === 'coop'
               ? 'Multiplayer: 2P Co-op'
-              : s.multiplayerMode === 'battle'
-                ? 'Multiplayer: 2P Battle'
-                : 'Multiplayer: AI Bot'}
+              : split
+                ? 'Multiplayer: 2P Split-Screen'
+                : s.multiplayerMode === 'battle'
+                  ? 'Multiplayer: 2P Battle'
+                  : 'Multiplayer: AI Bot'}
           </span>
         )}
 
@@ -289,7 +307,7 @@ export function HUD({ actions }: { actions: GameActions }) {
 
       {isTouch && s.firstPerson && !s.menuOpen && <TouchControls actions={actions} />}
 
-      {s.multiplayerMode === 'coop' && !s.menuOpen && (
+      {isTwoPlayerCoop(s.multiplayerMode) && !s.menuOpen && (
         <div
           data-testid="p2-touch-pad"
           aria-label="Player 2 controls"

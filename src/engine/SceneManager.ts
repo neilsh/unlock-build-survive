@@ -69,6 +69,8 @@ interface Tween {
 export class SceneManager {
   readonly scene = new THREE.Scene();
   readonly camera = new THREE.PerspectiveCamera(45, 1, 0.1, 200);
+  /** Player 2's camera, rendered into the right half of the canvas while split-screen is on. */
+  readonly camera2 = new THREE.PerspectiveCamera(45, 1, 0.1, 200);
   /** Parent group for blocks and struts, so everything can be cleared in one place. */
   readonly buildRoot = new THREE.Group();
   /** Flat top face of the island (y = 0). Raycast against this for placing on the ground. */
@@ -95,6 +97,7 @@ export class SceneManager {
   private readonly savedOrbitPos = new THREE.Vector3();
   private readonly savedOrbitTarget = new THREE.Vector3();
   private disposed = false;
+  private splitScreen = false;
 
   constructor(container: HTMLElement) {
     this.container = container;
@@ -309,9 +312,27 @@ export class SceneManager {
     // Shake is a render-only offset so OrbitControls never sees it.
     const shake = this.effects.shakeOffset;
     this.camera.position.add(shake);
-    this.renderer.render(this.scene, this.camera);
+    if (this.splitScreen) {
+      const size = this.renderer.getSize(new THREE.Vector2());
+      const half = Math.floor(size.x / 2);
+      this.renderer.setScissorTest(true);
+      this.renderViewport(this.camera, 0, half, size.y);
+      this.camera2.position.add(shake);
+      this.renderViewport(this.camera2, half, size.x - half, size.y);
+      this.camera2.position.sub(shake);
+      this.renderer.setScissorTest(false);
+      this.renderer.setViewport(0, 0, size.x, size.y);
+    } else {
+      this.renderer.render(this.scene, this.camera);
+    }
     this.camera.position.sub(shake);
   };
+
+  private renderViewport(cam: THREE.PerspectiveCamera, x: number, w: number, h: number): void {
+    this.renderer.setViewport(x, 0, w, h);
+    this.renderer.setScissor(x, 0, w, h);
+    this.renderer.render(this.scene, cam);
+  }
 
   private stepTween(dt: number): void {
     const tw = this.tween;
@@ -348,8 +369,34 @@ export class SceneManager {
     const w = Math.max(1, this.container.clientWidth);
     const h = Math.max(1, this.container.clientHeight);
     this.renderer.setSize(w, h, false);
-    this.camera.aspect = w / h;
-    this.camera.updateProjectionMatrix();
+    this.updateAspects();
+  }
+
+  private updateAspects(): void {
+    const w = Math.max(1, this.container.clientWidth);
+    const h = Math.max(1, this.container.clientHeight);
+    const aspect = (this.splitScreen ? w / 2 : w) / h;
+    for (const cam of [this.camera, this.camera2]) {
+      cam.aspect = aspect;
+      cam.updateProjectionMatrix();
+    }
+  }
+
+  /** Splits the canvas into two side-by-side views: `camera` (Player 1, left) and `camera2` (right). */
+  setSplitScreen(on: boolean): void {
+    if (this.splitScreen === on) return;
+    this.splitScreen = on;
+    this.updateAspects();
+  }
+
+  isSplitScreen(): boolean {
+    return this.splitScreen;
+  }
+
+  /** Points Player 2's camera at `target` from `eye` (world space). */
+  setSecondaryView(eye: Vec3, target: Vec3): void {
+    this.camera2.position.set(eye[0], eye[1], eye[2]);
+    this.camera2.lookAt(target[0], target[1], target[2]);
   }
 
   // ---------------------------------------------------------------- scenery

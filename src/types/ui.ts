@@ -12,7 +12,10 @@ import type { ArmorId, GearId, GearSlot, WeaponId } from './gear';
 import type { GameMod } from '../mods/mods';
 
 export type PlayMode = 'creative' | 'survival';
-export type MultiplayerMode = 'solo' | 'coop' | 'battle' | 'bot';
+export type MultiplayerMode = 'solo' | 'coop' | 'split' | 'battle' | 'bot';
+
+/** Modes where a second human drives the Player 2 avatar (shared screen `coop`, or own view `split`). */
+export const isTwoPlayerCoop = (mode: MultiplayerMode): boolean => mode === 'coop' || mode === 'split';
 export type AddonId = 'moonGravity' | 'turboMode' | 'megaStorm';
 
 /** Everything the HUD renders. Written by the engine side, read by React. */

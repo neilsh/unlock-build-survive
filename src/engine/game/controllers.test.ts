@@ -182,6 +182,11 @@ describe('InputRouter', () => {
     expect(deps.fireWeapon).toHaveBeenCalled();
   });
 
+  it('reports P2 camera look from the keyboard keys and clamps it', () => {
+    const { r } = make();
+    expect(r.getP2Look()).toBe(0);
+  });
+
   it('merges P2 touch input and clamps to [-1, 1]', () => {
     const { r } = make();
     r.setP2Control({ moveX: 1, jump: true });

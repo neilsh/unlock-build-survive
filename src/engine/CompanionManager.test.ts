@@ -59,4 +59,42 @@ describe('CompanionManager', () => {
     expect(onFire).toHaveBeenCalledTimes(1);
     mgr.dispose();
   });
+
+  it('shows the avatar in split-screen and moves relative to the P2 camera heading', () => {
+    const scene = new THREE.Scene();
+    const mgr = new CompanionManager(scene);
+    mgr.setMode('split');
+    expect(mgr.group.visible).toBe(true);
+
+    // Heading 0 looks down -z, so "forward" (moveY +1) must decrease z and leave x alone.
+    mgr.camYaw = 0;
+    const start = mgr.pos.clone();
+    mgr.update(0.05, 'split', false, [], { moveX: 0, moveY: 1, jump: false, fire: false }, vi.fn());
+    expect(mgr.pos.z).toBeLessThan(start.z);
+    expect(mgr.pos.x).toBeCloseTo(start.x);
+
+    // Heading +90deg looks down -x, so forward now decreases x.
+    mgr.camYaw = Math.PI / 2;
+    const mid = mgr.pos.clone();
+    mgr.update(0.05, 'split', false, [], { moveX: 0, moveY: 1, jump: false, fire: false }, vi.fn());
+    expect(mgr.pos.x).toBeLessThan(mid.x);
+    expect(mgr.pos.z).toBeCloseTo(mid.z);
+    mgr.dispose();
+  });
+
+  it('turns the P2 camera with lookX and keeps the chase camera behind the avatar', () => {
+    const scene = new THREE.Scene();
+    const mgr = new CompanionManager(scene);
+    mgr.setMode('split');
+    const before = mgr.camYaw;
+    mgr.update(0.05, 'split', false, [], { moveX: 0, moveY: 0, jump: false, fire: false }, vi.fn(), 1);
+    expect(mgr.camYaw).toBeLessThan(before);
+
+    mgr.camYaw = 0;
+    const { eye, target } = mgr.getChaseCamera();
+    expect(eye[2]).toBeGreaterThan(mgr.pos.z); // behind: +z when facing -z
+    expect(eye[1]).toBeGreaterThan(mgr.pos.y);
+    expect(target[2]).toBeLessThan(mgr.pos.z);
+    mgr.dispose();
+  });
 });

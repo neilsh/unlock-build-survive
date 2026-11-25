@@ -11,7 +11,13 @@ import { parseImportedMod, saveMods, type GameMod } from '../../mods/mods';
 import { uiStore } from '../../state/store';
 import { emptyGraph, isBuiltinDisaster, type Vec3 } from '../../types/blueprint';
 import { isBuiltinMaterial } from '../../types/materials';
-import type { AddonId, GameActions, MultiplayerMode, PlayMode } from '../../types/ui';
+import {
+  isTwoPlayerCoop,
+  type AddonId,
+  type GameActions,
+  type MultiplayerMode,
+  type PlayMode,
+} from '../../types/ui';
 import type { AudioSynth } from '../AudioSynth';
 import type { BuildController } from '../BuildController';
 import type { CompanionManager } from '../CompanionManager';
@@ -206,7 +212,7 @@ export class SessionController {
     this.d.build.setConstraints(null);
     this.d.build.loadGraph(saved.graph);
     this.d.companion.setMode(saved.multiplayerMode);
-    this.d.firstPerson.setArrowKeysEnabled(saved.multiplayerMode !== 'coop');
+    this.d.firstPerson.setArrowKeysEnabled(!isTwoPlayerCoop(saved.multiplayerMode));
     const s0 = uiStore.getState();
     uiStore.setState({
       playMode: saved.playMode,
@@ -250,7 +256,7 @@ export class SessionController {
 
   setMultiplayerMode: GameActions['setMultiplayerMode'] = (mode: MultiplayerMode) => {
     this.d.companion.setMode(mode);
-    this.d.firstPerson.setArrowKeysEnabled(mode !== 'coop');
+    this.d.firstPerson.setArrowKeysEnabled(!isTwoPlayerCoop(mode));
     if (mode === 'battle') {
       uiStore.setState({
         multiplayerMode: mode,

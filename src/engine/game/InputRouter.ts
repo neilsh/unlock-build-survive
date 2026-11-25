@@ -5,6 +5,7 @@
 import { isMaterialAllowed } from '../../levels/constraints';
 import { modStore } from '../../mods/modStore';
 import { uiStore } from '../../state/store';
+import { isTwoPlayerCoop } from '../../types/ui';
 import { DISASTER_ORDER, type DisasterType, type MaterialType, type ToolType } from '../../types/blueprint';
 import { GEAR_ORDER, isArmorId, isWeaponId, type GearId, type GearSlot } from '../../types/gear';
 import { MATERIAL_ORDER } from '../../types/materials';
@@ -45,17 +46,27 @@ export class InputRouter {
   private p2Touch: CompanionInput = { moveX: 0, moveY: 0, jump: false, fire: false };
   /** On-screen joystick/jump button state for the local (P1) player, merged with gamepad input. */
   private touchMove = { x: 0, y: 0, jump: false };
+  private p2LookPad = 0;
 
   constructor(private readonly d: InputDeps) {}
 
   /** Attaches P2 co-op keyboard/blur listeners to `window` and returns a cleanup callback. */
   attachWindowListeners(): () => void {
     if (typeof window === 'undefined') return () => {};
-    const p2Codes = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ShiftRight', 'Enter']);
+    const p2Codes = new Set([
+      'ArrowUp',
+      'ArrowDown',
+      'ArrowLeft',
+      'ArrowRight',
+      'ShiftRight',
+      'Enter',
+      'Comma',
+      'Period',
+    ]);
     const onP2KeyDown = (e: KeyboardEvent) => {
       if (!p2Codes.has(e.code)) return;
       const s = uiStore.getState();
-      if (s.multiplayerMode !== 'coop' || s.menuOpen || this.d.isModalOpen()) return;
+      if (!isTwoPlayerCoop(s.multiplayerMode) || s.menuOpen || this.d.isModalOpen()) return;
       const target = e.target;
       if (
         typeof HTMLElement !== 'undefined' &&
@@ -122,6 +133,12 @@ export class InputRouter {
     };
   }
 
+  /** Player 2 camera turn (-1..1): right stick X, or `,` / `.` on the keyboard. Used in split-screen. */
+  getP2Look(): number {
+    const keys = (this.p2Keys.has('Period') ? 1 : 0) - (this.p2Keys.has('Comma') ? 1 : 0);
+    return Math.max(-1, Math.min(1, keys + this.p2LookPad));
+  }
+
   handlePrimaryAction(source: 'click' | 'key'): void {
     const s = uiStore.getState();
     if (source === 'key') {
@@ -148,14 +165,16 @@ export class InputRouter {
     if (this.d.isModalOpen() || uiStore.getState().menuOpen) {
       this.d.firstPerson.setGamepadInput(0, 0, false);
       this.p2Gamepad = { moveX: 0, moveY: 0, jump: false, fire: false };
+      this.p2LookPad = 0;
       return;
     }
     if (!gp.connected) {
       this.applyMove(0, 0, false);
       this.p2Gamepad = { moveX: 0, moveY: 0, jump: false, fire: false };
+      this.p2LookPad = 0;
       return;
     }
-    if (uiStore.getState().multiplayerMode === 'coop') {
+    if (isTwoPlayerCoop(uiStore.getState().multiplayerMode)) {
       this.applyMove(0, 0, false);
       this.p2Gamepad = {
         moveX: gp.moveX,
@@ -163,9 +182,11 @@ export class InputRouter {
         jump: gp.jumpHeld,
         fire: gp.fireHeld || gp.primaryPressed,
       };
+      this.p2LookPad = gp.lookX;
       return;
     }
     this.p2Gamepad = { moveX: 0, moveY: 0, jump: false, fire: false };
+    this.p2LookPad = 0;
     this.applyMove(gp.moveX, gp.moveY, gp.jumpHeld);
     if (gp.lookX !== 0 || gp.lookY !== 0) {
       this.d.firstPerson.lookAngles(gp.lookX * 2.4 * dt, gp.lookY * 2.0 * dt);

@@ -1,6 +1,7 @@
 import {
   Bot,
   CloudLightning,
+  Columns2,
   Compass,
   FolderOpen,
   Hammer,
@@ -76,6 +77,12 @@ const MP_MODES: ReadonlyArray<{
     label: '2P Co-op',
     desc: 'Arrows / Pad / Touch P2',
     icon: <Users size={18} aria-hidden="true" />,
+  },
+  {
+    id: 'split',
+    label: '2P Split-Screen',
+    desc: 'P1 WASD + mouse, P2 Arrows / Pad (, . turns P2 view)',
+    icon: <Columns2 size={18} aria-hidden="true" />,
   },
   {
     id: 'battle',
@@ -237,7 +244,7 @@ export function MainMenu({ actions, onOpenChallenges, onOpenShop }: MainMenuProp
             <span className="text-xs font-black uppercase tracking-wide text-sky-800">
               Multiplayer (Any Device)
             </span>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
               {MP_MODES.map((m) => {
                 const active = s.multiplayerMode === m.id;
                 return (

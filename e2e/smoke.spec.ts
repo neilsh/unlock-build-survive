@@ -142,3 +142,38 @@ test.describe('music settings', () => {
     await expect(page.getByTestId('mute-toggle')).toHaveAttribute('aria-pressed', 'true');
   });
 });
+
+test.describe('split-screen co-op', () => {
+  test('2P Split-Screen shows both viewports and runs without errors', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', (err) => errors.push(`pageerror: ${err.message}`));
+    page.on('console', (msg) => {
+      if (msg.type() !== 'error') return;
+      const text = msg.text();
+      if (IGNORED_CONSOLE.some((re) => re.test(text))) return;
+      errors.push(`console.error: ${text}`);
+    });
+
+    await openGame(page);
+    await page.getByTestId('mp-split').click();
+    await expect(page.getByTestId('mp-split')).toHaveAttribute('aria-pressed', 'true');
+    await page.getByTestId('menu-creative').click();
+
+    await expect(page.getByTestId('mp-badge')).toContainText('Split-Screen');
+    await expect(page.getByTestId('split-overlay')).toBeAttached();
+    // P1's crosshair sits in the left half only.
+    const box = await page.getByTestId('fp-crosshair').boundingBox();
+    const viewport = page.viewportSize()!;
+    expect(box!.width).toBeLessThanOrEqual(viewport.width / 2 + 1);
+    await page.waitForTimeout(500); // let a few split-screen frames render
+    await page.screenshot({ path: 'test-results/split-screen.png' });
+
+    // Leaving split-screen restores the single full-width view.
+    await page.getByTestId('menu-open').click();
+    await page.getByTestId('mp-solo').click();
+    await page.getByTestId('menu-creative').click();
+    await expect(page.getByTestId('split-overlay')).toHaveCount(0);
+
+    expect(errors, errors.join('\n')).toEqual([]);
+  });
+});

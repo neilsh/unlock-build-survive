@@ -313,6 +313,7 @@ export class Game implements GameActions, GameDebugApi {
 
   private tick(dt: number) {
     this.combat.tickCooldown(dt);
+    this.scene.setSplitScreen(uiStore.getState().multiplayerMode === 'split');
     if (dt > 0) this.input.handleGamepad(dt);
     if (this.physics.isRunning()) this.physics.update(dt);
     if (uiStore.getState().firstPerson) {
@@ -341,7 +342,12 @@ export class Game implements GameActions, GameDebugApi {
         this.audio.resume();
         this.audio.playLaserZap();
       },
+      this.input.getP2Look(),
     );
+    if (this.scene.isSplitScreen()) {
+      const { eye, target } = this.companion.getChaseCamera();
+      this.scene.setSecondaryView(eye, target);
+    }
     if (uiStore.getState().survivalOver) return;
     const t = this.physics.getTelemetry();
     const s = uiStore.getState();

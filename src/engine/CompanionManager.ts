@@ -37,12 +37,18 @@ const BOT_PATROL_RADIUS = 6.4;
 const BOT_COOLDOWN = 1.05;
 const COOP_COOLDOWN = 0.55;
 const START_POS: Vec3 = [4.5, 0, 5.5];
+const CHASE_BACK = 7.5;
+const CHASE_UP = 3.6;
+const CHASE_AHEAD = 4;
+const CAM_TURN_SPEED = 2.4;
 
 export class CompanionManager {
   readonly group = new THREE.Group();
   readonly pos = new THREE.Vector3(...START_POS);
   vy = 0;
   yaw = Math.PI;
+  /** Heading of Player 2's chase camera in split-screen; movement is relative to it. */
+  camYaw = Math.atan2(START_POS[0], START_POS[2]);
   grounded = true;
 
   private fireCooldown = 0;
@@ -146,8 +152,8 @@ export class CompanionManager {
   }
 
   setMode(mode: MultiplayerMode): void {
-    const wasVisible = this.mode === 'coop' || this.mode === 'bot';
-    const nextVisible = mode === 'coop' || mode === 'bot';
+    const wasVisible = this.isVisibleMode(this.mode);
+    const nextVisible = this.isVisibleMode(mode);
     this.mode = mode;
     this.group.visible = nextVisible;
     if (mode === 'bot') {
@@ -164,11 +170,30 @@ export class CompanionManager {
     }
   }
 
+  private isVisibleMode(mode: MultiplayerMode): boolean {
+    return mode === 'coop' || mode === 'split' || mode === 'bot';
+  }
+
+  /**
+   * Third-person chase camera for Player 2's split-screen viewport: behind and above the avatar,
+   * looking slightly ahead of it along the camera heading `camYaw`.
+   */
+  getChaseCamera(): { eye: Vec3; target: Vec3 } {
+    const fx = -Math.sin(this.camYaw);
+    const fz = -Math.cos(this.camYaw);
+    return {
+      eye: [this.pos.x - fx * CHASE_BACK, Math.max(0.6, this.pos.y + CHASE_UP), this.pos.z - fz * CHASE_BACK],
+      target: [this.pos.x + fx * CHASE_AHEAD, this.pos.y + 1.2, this.pos.z + fz * CHASE_AHEAD],
+    };
+  }
+
   resetPosition(): void {
     this.pos.set(...START_POS);
     this.vy = 0;
     this.grounded = true;
     this.yaw = Math.PI;
+    // Face the island centre so the chase camera starts looking at the village.
+    this.camYaw = Math.atan2(START_POS[0], START_POS[2]);
     this.fireCooldown = 0;
     this.syncTransform();
   }
@@ -180,9 +205,10 @@ export class CompanionManager {
     projectiles: readonly Vec3[],
     p2Input: CompanionInput,
     onFire: (muzzle: Vec3, dir: Vec3) => void,
+    lookX = 0,
   ): void {
     if (mode !== this.mode) this.setMode(mode);
-    if (mode !== 'coop' && mode !== 'bot') return;
+    if (!this.isVisibleMode(mode)) return;
 
     const stepDt = Math.min(Math.max(dt, 0), MAX_STEP_DT);
     this.fireCooldown = Math.max(0, this.fireCooldown - stepDt);
@@ -218,6 +244,16 @@ export class CompanionManager {
     } else {
       let mx = p2Input.moveX;
       let mz = -p2Input.moveY;
+      if (mode === 'split') {
+        // Split-screen: "up" means away from the P2 camera, so turn the stick into world space.
+        this.camYaw -= lookX * CAM_TURN_SPEED * stepDt;
+        const sin = Math.sin(this.camYaw);
+        const cos = Math.cos(this.camYaw);
+        const wx = mx * cos + mz * sin;
+        const wz = mz * cos - mx * sin;
+        mx = wx;
+        mz = wz;
+      }
       const len = Math.hypot(mx, mz);
       if (len > 1) {
         mx /= len;

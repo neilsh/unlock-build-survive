@@ -101,7 +101,7 @@ function sanitizeGraph(raw: unknown): BlueprintGraph | null {
 }
 
 const isMultiplayerMode = (v: unknown): v is MultiplayerMode =>
-  v === 'solo' || v === 'coop' || v === 'battle' || v === 'bot';
+  v === 'solo' || v === 'coop' || v === 'split' || v === 'battle' || v === 'bot';
 
 const isStrength = (v: unknown): v is Strength =>
   typeof v === 'string' && (STRENGTH_ORDER as readonly string[]).includes(v);

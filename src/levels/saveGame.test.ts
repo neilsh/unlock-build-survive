@@ -106,4 +106,11 @@ describe('saveGame', () => {
     expect(loaded.strength).toBe('medium');
     expect(loaded.survivalWave).toBe(1);
   });
+
+  it('round-trips the split-screen multiplayer mode', () => {
+    const raw = fakeStorage(
+      JSON.stringify({ graph: { version: 1, blocks: [], struts: [] }, multiplayerMode: 'split' }),
+    );
+    expect(loadGameState(raw)?.multiplayerMode).toBe('split');
+  });
 });
