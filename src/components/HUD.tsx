@@ -41,6 +41,7 @@ import { LevelPanel } from './LevelPanel';
 import { MainMenu } from './MainMenu';
 import { ModsPanel } from './ModsPanel';
 import { ShopPanel } from './ShopPanel';
+import { TouchControls, useIsTouchDevice } from './TouchControls';
 
 export function HUD({ actions }: { actions: GameActions }) {
   const s = useUIState();
@@ -49,6 +50,7 @@ export function HUD({ actions }: { actions: GameActions }) {
   const [levelsOpen, setLevelsOpen] = useState(false);
   const [shopOpen, setShopOpen] = useState(false);
   const flashing = s.damageFlash > clearedFlash;
+  const isTouch = useIsTouchDevice();
 
   useEffect(() => {
     if (s.damageFlash <= clearedFlash) return;
@@ -284,6 +286,8 @@ export function HUD({ actions }: { actions: GameActions }) {
           </div>
         </div>
       )}
+
+      {isTouch && s.firstPerson && !s.menuOpen && <TouchControls actions={actions} />}
 
       {s.multiplayerMode === 'coop' && !s.menuOpen && (
         <div

@@ -409,6 +409,8 @@ export class Game implements GameActions, GameDebugApi {
   // Combat and input (CombatController, InputRouter)
   fireWeapon: GameActions['fireWeapon'] = () => this.combat.fireWeapon();
   setP2Control: GameActions['setP2Control'] = (patch) => this.input.setP2Control(patch);
+  setTouchMove: GameActions['setTouchMove'] = (x, y) => this.input.setTouchMove(x, y);
+  setTouchJump: GameActions['setTouchJump'] = (on) => this.input.setTouchJump(on);
 
   setMirrorX: GameActions['setMirrorX'] = (on) => {
     this.build.setMirrorX(on);

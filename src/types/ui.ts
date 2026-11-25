@@ -121,6 +121,9 @@ export interface GameActions {
   nextBattleTurn(): void;
   resetBattle(): void;
   setP2Control(patch: Partial<{ moveX: number; moveY: number; jump: boolean; fire: boolean }>): void;
+  /** On-screen joystick for the local player: strafe (right +) and forward (+), each -1..1. */
+  setTouchMove(strafe: number, forward: number): void;
+  setTouchJump(jump: boolean): void;
   nextSurvivalWave(): void;
   restartSurvival(): void;
 }

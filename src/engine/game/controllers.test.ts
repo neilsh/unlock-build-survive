@@ -151,6 +151,21 @@ describe('InputRouter', () => {
     return { deps, r: new InputRouter(deps as unknown as InputDeps) };
   };
 
+  it('forwards on-screen joystick and jump through the same first-person input path', () => {
+    const { deps, r } = make();
+    deps.gamepad.poll = vi.fn(() => ({ connected: false })) as never;
+    r.setTouchMove(3, 4);
+    r.setTouchJump(true);
+    r.handleGamepad(0.016);
+    const [x, y, jump] = (deps.firstPerson.setGamepadInput as ReturnType<typeof vi.fn>).mock.calls.at(-1)!;
+    expect(x).toBeCloseTo(0.6);
+    expect(y).toBeCloseTo(0.8);
+    expect(jump).toBe(true);
+    uiStore.setState({ menuOpen: true });
+    r.handleGamepad(0.016);
+    expect(deps.firstPerson.setGamepadInput).toHaveBeenLastCalledWith(0, 0, false);
+  });
+
   it('click in build mode applies the tool; explore mode toggles doors', () => {
     const { deps, r } = make();
     r.handlePrimaryAction('click');

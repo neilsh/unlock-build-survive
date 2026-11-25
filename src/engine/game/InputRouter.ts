@@ -43,6 +43,8 @@ export class InputRouter {
   private readonly p2Keys = new Set<string>();
   private p2Gamepad: CompanionInput = { moveX: 0, moveY: 0, jump: false, fire: false };
   private p2Touch: CompanionInput = { moveX: 0, moveY: 0, jump: false, fire: false };
+  /** On-screen joystick/jump button state for the local (P1) player, merged with gamepad input. */
+  private touchMove = { x: 0, y: 0, jump: false };
 
   constructor(private readonly d: InputDeps) {}
 
@@ -71,6 +73,7 @@ export class InputRouter {
     const onP2Blur = () => {
       this.p2Keys.clear();
       this.p2Touch = { moveX: 0, moveY: 0, jump: false, fire: false };
+      this.touchMove = { x: 0, y: 0, jump: false };
     };
     window.addEventListener('keydown', onP2KeyDown);
     window.addEventListener('keyup', onP2KeyUp);
@@ -84,6 +87,28 @@ export class InputRouter {
 
   setP2Control(patch: Partial<CompanionInput>): void {
     this.p2Touch = { ...this.p2Touch, ...patch };
+  }
+
+  /** On-screen joystick: strafe/forward in -1..1 (clamped to unit length). */
+  setTouchMove(strafe: number, forward: number): void {
+    const len = Math.hypot(strafe, forward);
+    const k = len > 1 ? 1 / len : 1;
+    this.touchMove.x = strafe * k;
+    this.touchMove.y = forward * k;
+  }
+
+  setTouchJump(jump: boolean): void {
+    this.touchMove.jump = jump;
+  }
+
+  /** Sends gamepad + touch movement to the first-person controller (same path for both). */
+  private applyMove(gpX: number, gpY: number, gpJump: boolean): void {
+    const t = this.touchMove;
+    this.d.firstPerson.setGamepadInput(
+      Math.max(-1, Math.min(1, gpX + t.x)),
+      Math.max(-1, Math.min(1, gpY + t.y)),
+      gpJump || t.jump,
+    );
   }
 
   getP2Input(): CompanionInput {
@@ -120,13 +145,18 @@ export class InputRouter {
 
   handleGamepad(dt: number): void {
     const gp = this.d.gamepad.poll();
-    if (!gp.connected || this.d.isModalOpen() || uiStore.getState().menuOpen) {
+    if (this.d.isModalOpen() || uiStore.getState().menuOpen) {
       this.d.firstPerson.setGamepadInput(0, 0, false);
       this.p2Gamepad = { moveX: 0, moveY: 0, jump: false, fire: false };
       return;
     }
+    if (!gp.connected) {
+      this.applyMove(0, 0, false);
+      this.p2Gamepad = { moveX: 0, moveY: 0, jump: false, fire: false };
+      return;
+    }
     if (uiStore.getState().multiplayerMode === 'coop') {
-      this.d.firstPerson.setGamepadInput(0, 0, false);
+      this.applyMove(0, 0, false);
       this.p2Gamepad = {
         moveX: gp.moveX,
         moveY: gp.moveY,
@@ -136,7 +166,7 @@ export class InputRouter {
       return;
     }
     this.p2Gamepad = { moveX: 0, moveY: 0, jump: false, fire: false };
-    this.d.firstPerson.setGamepadInput(gp.moveX, gp.moveY, gp.jumpHeld);
+    this.applyMove(gp.moveX, gp.moveY, gp.jumpHeld);
     if (gp.lookX !== 0 || gp.lookY !== 0) {
       this.d.firstPerson.lookAngles(gp.lookX * 2.4 * dt, gp.lookY * 2.0 * dt);
     }

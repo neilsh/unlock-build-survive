@@ -98,7 +98,9 @@ export class FirstPersonController {
 
     if (dom && typeof dom.addEventListener === 'function') {
       const onPointerDown = (e: PointerEvent) => {
-        if (!this.enabled || this.paused || !e.isPrimary || e.button !== 0) return;
+        // Ignore extra fingers while one is already dragging (the joystick is a separate DOM overlay, so
+        // the look finger is not the "primary" pointer on touch screens).
+        if (!this.enabled || this.paused || this.dragPointerId !== null || e.button !== 0) return;
         this.dragPointerId = e.pointerId;
         this.lastPointer = { x: e.clientX, y: e.clientY };
         this.dragStart = { x: e.clientX, y: e.clientY };
