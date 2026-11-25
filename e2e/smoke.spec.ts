@@ -76,6 +76,7 @@ test.describe('boot', () => {
 test.describe('strength picker', () => {
   test('picks a strength and shows the full countdown while building', async ({ page }) => {
     await openGame(page);
+    await page.getByTestId('menu-creative').click(); // the main menu is open at boot
     await expect(page.getByTestId('countdown')).toHaveText('8');
     await page.getByTestId('strength-strong').click();
     await expect(page.getByTestId('strength-strong')).toHaveAttribute('aria-pressed', 'true');
