@@ -7,6 +7,7 @@ import type { Vec3 } from '../types/blueprint';
 import { ISLAND_SIZE } from '../types/blueprint';
 import type { WeaponDef } from '../types/gear';
 import type { MultiplayerMode } from '../types/ui';
+import { RoboAvatar, type RoboPalette } from './RoboAvatar';
 
 export interface CompanionInput {
   moveX: number;
@@ -28,6 +29,9 @@ export const COMPANION_WEAPON: WeaponDef = {
   description: 'Friendly companion zapper that blasts incoming hazards out of the sky!',
 };
 
+const P2_PALETTE: RoboPalette = { body: 0x0284c7, accent: 0x38bdf8, visorGlow: 0x38bdf8 };
+const BOT_PALETTE: RoboPalette = { body: 0x10b981, accent: 0xfacc15, visorGlow: 0x34d399 };
+
 const MOVE_SPEED = 7.5;
 const JUMP_SPEED = 8.2;
 const GRAVITY = 9.81 * 2.2;
@@ -43,7 +47,6 @@ const CHASE_AHEAD = 4;
 const CAM_TURN_SPEED = 2.4;
 
 export class CompanionManager {
-  readonly group = new THREE.Group();
   readonly pos = new THREE.Vector3(...START_POS);
   vy = 0;
   yaw = Math.PI;
@@ -56,99 +59,12 @@ export class CompanionManager {
   private animTime = 0;
   private mode: MultiplayerMode = 'solo';
 
-  private readonly geometries: THREE.BufferGeometry[] = [];
-  private readonly materials: THREE.MeshStandardMaterial[] = [];
-  private readonly bodyMat: THREE.MeshStandardMaterial;
-  private readonly accentMat: THREE.MeshStandardMaterial;
-  private readonly visorMat: THREE.MeshStandardMaterial;
-  private readonly leftArm: THREE.Mesh;
-  private readonly rightArm: THREE.Mesh;
-  private readonly leftLeg: THREE.Mesh;
-  private readonly rightLeg: THREE.Mesh;
+  private readonly avatar = new RoboAvatar(P2_PALETTE);
+  readonly group = this.avatar.group;
 
   constructor(private readonly scene: THREE.Scene) {
-    this.bodyMat = this.makeMat(0x0ea5e9, 0.35, 0.2);
-    this.accentMat = this.makeMat(0x38bdf8, 0.25, 0.3);
-    this.visorMat = this.makeMat(0xfef08a, 0.2, 0.1, 0x38bdf8, 0.7);
-    const darkMat = this.makeMat(0x1e293b, 0.6, 0.1);
-
-    const torsoGeo = this.trackGeo(new THREE.BoxGeometry(0.68, 0.76, 0.44));
-    const headGeo = this.trackGeo(new THREE.BoxGeometry(0.56, 0.48, 0.48));
-    const visorGeo = this.trackGeo(new THREE.BoxGeometry(0.42, 0.18, 0.08));
-    const antGeo = this.trackGeo(new THREE.CylinderGeometry(0.03, 0.04, 0.26, 8));
-    const bulbGeo = this.trackGeo(new THREE.SphereGeometry(0.08, 10, 10));
-    const limbGeo = this.trackGeo(new THREE.BoxGeometry(0.2, 0.52, 0.22));
-
-    const torso = new THREE.Mesh(torsoGeo, this.bodyMat);
-    torso.position.y = 0.9;
-    torso.castShadow = true;
-
-    const head = new THREE.Mesh(headGeo, this.accentMat);
-    head.position.y = 1.56;
-    head.castShadow = true;
-
-    const visor = new THREE.Mesh(visorGeo, this.visorMat);
-    visor.position.set(0, 1.58, -0.23);
-
-    const antenna = new THREE.Mesh(antGeo, darkMat);
-    antenna.position.set(0, 1.92, 0);
-
-    const bulb = new THREE.Mesh(bulbGeo, this.visorMat);
-    bulb.position.set(0, 2.07, 0);
-
-    this.leftArm = new THREE.Mesh(limbGeo, this.accentMat);
-    this.leftArm.position.set(-0.46, 0.9, 0);
-    this.leftArm.castShadow = true;
-
-    this.rightArm = new THREE.Mesh(limbGeo, this.accentMat);
-    this.rightArm.position.set(0.46, 0.9, 0);
-    this.rightArm.castShadow = true;
-
-    this.leftLeg = new THREE.Mesh(limbGeo, darkMat);
-    this.leftLeg.position.set(-0.18, 0.26, 0);
-    this.leftLeg.castShadow = true;
-
-    this.rightLeg = new THREE.Mesh(limbGeo, darkMat);
-    this.rightLeg.position.set(0.18, 0.26, 0);
-    this.rightLeg.castShadow = true;
-
-    this.group.add(
-      torso,
-      head,
-      visor,
-      antenna,
-      bulb,
-      this.leftArm,
-      this.rightArm,
-      this.leftLeg,
-      this.rightLeg,
-    );
-    this.group.visible = false;
     this.syncTransform();
     this.scene.add(this.group);
-  }
-
-  private trackGeo<T extends THREE.BufferGeometry>(g: T): T {
-    this.geometries.push(g);
-    return g;
-  }
-
-  private makeMat(
-    color: number,
-    roughness: number,
-    metalness: number,
-    emissive = 0x000000,
-    emissiveIntensity = 0,
-  ): THREE.MeshStandardMaterial {
-    const m = new THREE.MeshStandardMaterial({
-      color,
-      roughness,
-      metalness,
-      emissive,
-      emissiveIntensity,
-    });
-    this.materials.push(m);
-    return m;
   }
 
   setMode(mode: MultiplayerMode): void {
@@ -156,15 +72,7 @@ export class CompanionManager {
     const nextVisible = this.isVisibleMode(mode);
     this.mode = mode;
     this.group.visible = nextVisible;
-    if (mode === 'bot') {
-      this.bodyMat.color.setHex(0x10b981);
-      this.accentMat.color.setHex(0xfacc15);
-      this.visorMat.emissive.setHex(0x34d399);
-    } else {
-      this.bodyMat.color.setHex(0x0284c7);
-      this.accentMat.color.setHex(0x38bdf8);
-      this.visorMat.emissive.setHex(0x38bdf8);
-    }
+    this.avatar.setPalette(mode === 'bot' ? BOT_PALETTE : P2_PALETTE);
     if (!wasVisible && nextVisible) {
       this.resetPosition();
     }
@@ -297,10 +205,7 @@ export class CompanionManager {
       }
       this.animTime += stepDt * (moving ? 9 : 2.5);
       const swing = moving ? Math.sin(this.animTime) * 0.45 : Math.sin(this.animTime) * 0.06;
-      this.leftArm.rotation.x = swing;
-      this.rightArm.rotation.x = -swing;
-      this.leftLeg.rotation.x = -swing;
-      this.rightLeg.rotation.x = swing;
+      this.avatar.setSwing(swing);
     }
 
     this.syncTransform();
@@ -341,8 +246,6 @@ export class CompanionManager {
   }
 
   dispose(): void {
-    this.scene.remove(this.group);
-    this.geometries.forEach((g) => g.dispose());
-    this.materials.forEach((m) => m.dispose());
+    this.avatar.dispose();
   }
 }

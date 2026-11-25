@@ -34,6 +34,7 @@ import { hasSavedGame } from '../levels/saveGame';
 import { BuildController } from './BuildController';
 import { COMPANION_WEAPON, CompanionManager } from './CompanionManager';
 import { FirstPersonController } from './FirstPersonController';
+import { PlayerBody } from './PlayerBody';
 import { GamepadManager } from './GamepadManager';
 import { PHYSICS_TUNING, PhysicsSim, type SimOptions } from './PhysicsSim';
 import { ProceduralAssets } from './ProceduralAssets';
@@ -63,6 +64,7 @@ export class Game implements GameActions, GameDebugApi {
   readonly build: BuildController;
   readonly companion: CompanionManager;
   readonly firstPerson: FirstPersonController;
+  private readonly playerBody: PlayerBody;
   readonly gamepad = new GamepadManager();
   readonly physics = new PhysicsSim();
 
@@ -82,6 +84,7 @@ export class Game implements GameActions, GameDebugApi {
     this.build = new BuildController(this.scene, this.assets, this.audio);
     this.companion = new CompanionManager(this.scene.scene);
     this.firstPerson = new FirstPersonController(this.scene.camera, this.scene.domElement);
+    this.playerBody = new PlayerBody(this.scene.scene);
 
     this.progression = new ProgressionController({
       audio: this.audio,
@@ -343,6 +346,12 @@ export class Game implements GameActions, GameDebugApi {
         this.audio.playLaserZap();
       },
       this.input.getP2Look(),
+    );
+    this.playerBody.update(
+      dt,
+      this.scene.isSplitScreen() && this.firstPerson.isEnabled(),
+      this.firstPerson.getFeetPosition(),
+      this.firstPerson.yaw,
     );
     if (this.scene.isSplitScreen()) {
       const { eye, target } = this.companion.getChaseCamera();
@@ -657,6 +666,7 @@ export class Game implements GameActions, GameDebugApi {
     this.cleanups.forEach((c) => c());
     this.gamepad.dispose();
     this.companion.dispose();
+    this.playerBody.dispose();
     this.firstPerson.dispose();
     this.build.dispose();
     this.scene.dispose();

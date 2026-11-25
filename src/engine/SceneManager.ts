@@ -3,6 +3,7 @@
  * Frame loop: SceneManager owns requestAnimationFrame and calls registered callbacks with the raw
  * frame delta in seconds. It must dispose all WebGL resources in `dispose()`.
  */
+import { P1_BODY_LAYER } from './PlayerBody';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import type { Azimuth, DisasterType, ProjectileKind, Vec3 } from '../types/blueprint';
@@ -151,6 +152,9 @@ export class SceneManager {
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(container);
     this.resize();
+
+    // Player 1's visible body is on its own layer: only Player 2's camera draws it.
+    this.camera2.layers.enable(P1_BODY_LAYER);
 
     this.timer.connect(document);
     this.rafId = requestAnimationFrame(this.loop);
