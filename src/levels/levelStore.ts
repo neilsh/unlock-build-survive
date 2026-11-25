@@ -1,5 +1,5 @@
 /** Level-only UI state that does not belong in the shared UIState contract. */
-import { useSyncExternalStore } from 'react';
+import { createStore, useStoreSelector } from '../state/createStore';
 import type { BestStars } from './progress';
 
 export interface LevelInfo {
@@ -17,27 +17,12 @@ export interface LevelInfo {
 
 const initial: LevelInfo = { blocksUsed: 0, height: 0, best: {}, justUnlocked: null, notice: null };
 
-class LevelStore {
-  private state: LevelInfo = initial;
-  private listeners = new Set<() => void>();
+export const levelStore = createStore<LevelInfo>(initial);
 
-  getState = () => this.state;
+const selectAll = (info: LevelInfo): LevelInfo => info;
 
-  setState(patch: Partial<LevelInfo>) {
-    this.state = { ...this.state, ...patch };
-    this.listeners.forEach((l) => l());
-  }
-
-  subscribe = (l: () => void) => {
-    this.listeners.add(l);
-    return () => {
-      this.listeners.delete(l);
-    };
-  };
-}
-
-export const levelStore = new LevelStore();
-
-export function useLevelInfo(): LevelInfo {
-  return useSyncExternalStore(levelStore.subscribe, levelStore.getState);
+export function useLevelInfo(): LevelInfo;
+export function useLevelInfo<S>(selector: (info: LevelInfo) => S): S;
+export function useLevelInfo(selector: (info: LevelInfo) => unknown = selectAll): unknown {
+  return useStoreSelector(levelStore, selector);
 }

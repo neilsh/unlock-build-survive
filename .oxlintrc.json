@@ -146,7 +146,8 @@
       "rules": {
         "no-restricted-globals": [
           "error",
-          { "name": "window", "message": "Physics must run headless in Node." }
+          { "name": "window", "message": "Physics must run headless in Node." },
+          { "name": "document", "message": "Physics must run headless in Node." }
         ]
       }
     }
