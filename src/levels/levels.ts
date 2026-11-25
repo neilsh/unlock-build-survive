@@ -116,7 +116,7 @@ export const LEVELS: readonly Level[] = [
     goalStars: 1,
   },
   {
-    id: 'unlock-build-survive',
+    id: 'critter-haven',
     title: 'Disaster Village',
     blurb: 'The big one! A mighty storm is coming. Build a village strong enough for anything.',
     disaster: 'hurricane',

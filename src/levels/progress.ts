@@ -19,7 +19,7 @@ export interface SurvivalSave {
   bonusPoints: number;
 }
 
-export const PROGRESS_KEY = 'unlock-build-survive:progress:v1';
+export const PROGRESS_KEY = 'critter-haven:progress:v1';
 export const SHOP_KEY = 'disaster-village:shop:v1';
 export const GEAR_KEY = 'disaster-village:gear:v1';
 export const PRESETS_KEY = 'disaster-village:presets:v1';
