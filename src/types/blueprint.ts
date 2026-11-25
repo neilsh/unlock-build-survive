@@ -18,6 +18,7 @@ export type BuiltinMaterialType =
   | 'bamboo'
   | 'foam'
   | 'door'
+  | 'ladder'
   | 'rubber'
   | 'anchor'
   | 'pontoon'

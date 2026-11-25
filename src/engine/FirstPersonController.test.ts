@@ -217,4 +217,40 @@ describe('FirstPersonController', () => {
     expect(cam.rotation.y).toBeCloseTo(-0.5);
     fp.dispose();
   });
+
+  it('walks into a ladder column and climbs it with W/S, holds still with no input, and hops off with Space', () => {
+    const fp = new FirstPersonController(new THREE.PerspectiveCamera(45, 1, 0.1, 200));
+    fp.setEnabled(true);
+    const ladder: Array<[number, number, number]> = [
+      [0, 1, 0],
+      [0, 3, 0],
+      [0, 5, 0],
+    ];
+    fp.pos.set(0, 0, 3);
+    fp.yaw = 0; // facing -z, toward the ladder
+    fp.setKey('KeyW', true);
+    for (let i = 0; i < 30 && !fp.climbing; i++) fp.update(1 / 60, ladder, 9.81, 1, 1, ladder);
+    expect(fp.climbing).toBe(true); // not pushed out by the ladder blocks
+
+    const z = fp.pos.z;
+    for (let i = 0; i < 60; i++) fp.update(1 / 60, ladder, 9.81, 1, 1, ladder);
+    expect(fp.pos.y).toBeGreaterThan(3);
+    expect(fp.pos.z).toBeCloseTo(z); // W climbs instead of walking through
+
+    fp.setKey('KeyW', false);
+    const held = fp.pos.y;
+    for (let i = 0; i < 30; i++) fp.update(1 / 60, ladder, 9.81, 1, 1, ladder);
+    expect(fp.pos.y).toBeCloseTo(held); // no gravity slide while holding the ladder
+
+    fp.setKey('KeyS', true);
+    for (let i = 0; i < 20; i++) fp.update(1 / 60, ladder, 9.81, 1, 1, ladder);
+    expect(fp.pos.y).toBeLessThan(held);
+
+    fp.setKey('KeyS', false);
+    fp.setKey('Space', true);
+    fp.update(1 / 60, ladder, 9.81, 1, 1, ladder);
+    expect(fp.climbing).toBe(false);
+    expect(fp.vy).toBeGreaterThan(0);
+    fp.dispose();
+  });
 });

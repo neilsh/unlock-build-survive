@@ -23,6 +23,7 @@ const ROUGHNESS: Record<BuiltinMaterialType, number> = {
   bamboo: 0.5,
   foam: 0.85,
   door: 0.65,
+  ladder: 0.75,
   rubber: 0.85,
   anchor: 0.45,
   pontoon: 0.55,
@@ -40,6 +41,7 @@ const TEXTURE_SEEDS: Record<BuiltinMaterialType, number> = {
   bamboo: 37,
   foam: 53,
   door: 251,
+  ladder: 263,
   rubber: 139,
   anchor: 71,
   pontoon: 157,
@@ -426,6 +428,31 @@ const PAINTERS: Record<BuiltinMaterialType, Painter> = {
     g.strokeStyle = '#78350f';
     g.lineWidth = 2;
     g.stroke();
+  },
+  ladder(g, rnd, base) {
+    const S = TEXTURE_SIZE;
+    // Dark backing so the rungs pop, with the ladder's two rails and evenly spaced rungs on top.
+    g.fillStyle = 'rgba(40,24,10,1)';
+    g.fillRect(0, 0, S, S);
+    g.fillStyle = base;
+    for (const x of [S * 0.16, S * 0.74]) g.fillRect(x, 0, S * 0.1, S);
+    const rungs = 5;
+    for (let i = 0; i < rungs; i++) {
+      const y = ((i + 0.5) / rungs) * S - 8;
+      g.fillStyle = base;
+      g.fillRect(S * 0.16, y, S * 0.68, 16);
+      g.fillStyle = 'rgba(255,230,180,0.25)';
+      g.fillRect(S * 0.16, y, S * 0.68, 4);
+    }
+    g.strokeStyle = 'rgba(60,30,10,0.3)';
+    g.lineWidth = 1;
+    for (let i = 0; i < 20; i++) {
+      const x = S * 0.16 + rnd() * S * 0.1;
+      g.beginPath();
+      g.moveTo(x, 0);
+      g.lineTo(x + (rnd() - 0.5) * 3, S);
+      g.stroke();
+    }
   },
 };
 

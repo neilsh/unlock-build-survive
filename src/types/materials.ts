@@ -26,6 +26,8 @@ export interface MaterialDef {
   anchorMultiplier?: number;
   /** Active defense behaviour during a disaster. */
   special?: 'shield' | 'laser';
+  /** Players can walk into this block and climb it in First-Person. */
+  climbable?: boolean;
 }
 
 export const MATERIALS: Record<BuiltinMaterialType, MaterialDef> = {
@@ -200,9 +202,19 @@ export const MATERIALS: Record<BuiltinMaterialType, MaterialDef> = {
     maxStress: 1.1,
     buoyancy: 1.2,
   },
+  ladder: {
+    id: 'ladder',
+    label: 'Ladder',
+    color: 0xb07a3c,
+    density: 0.4,
+    stiffness: 0.6,
+    maxStress: 0.8,
+    buoyancy: 1.3,
+    climbable: true,
+  },
 };
 
-export const BASE_MATERIALS: BuiltinMaterialType[] = ['wood', 'stone', 'bamboo', 'foam', 'door'];
+export const BASE_MATERIALS: BuiltinMaterialType[] = ['wood', 'stone', 'bamboo', 'foam', 'door', 'ladder'];
 export const UNLOCKABLE_MATERIALS: BuiltinMaterialType[] = [
   'rubber',
   'anchor',

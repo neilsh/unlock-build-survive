@@ -16,6 +16,9 @@ const HALF_BLOCK = CELL_SIZE / 2;
 const LOOK_SENSITIVITY = 0.004;
 const MAX_PITCH = Math.PI / 2 - 0.08;
 const MAX_STEP_DT = 0.05;
+const CLIMB_SPEED = 4.5;
+
+const cellKey = ([x, y, z]: Vec3): string => `${x.toFixed(2)},${y.toFixed(2)},${z.toFixed(2)}`;
 
 const SPAWN_CANDIDATES: readonly Vec3[] = [
   [0, 0, 6.2],
@@ -39,6 +42,8 @@ export class FirstPersonController {
   yaw = 0;
   pitch = -0.08;
   grounded = true;
+  /** True while the player is inside a ladder block and holding on to it. */
+  climbing = false;
 
   private enabled = false;
   private paused = false;
@@ -241,6 +246,7 @@ export class FirstPersonController {
     gravity = 9.81,
     jumpMultiplier = 1,
     speedMultiplier = 1,
+    ladderCenters: readonly Vec3[] = [],
   ): void {
     if (!this.enabled) return;
     const stepDt = Math.min(Math.max(dt, 0), MAX_STEP_DT);
@@ -258,13 +264,15 @@ export class FirstPersonController {
     const fwd = Math.max(-1, Math.min(1, kFwd + this.gpForward));
     const strafe = Math.max(-1, Math.min(1, kStrafe + this.gpStrafe));
 
-    if (fwd !== 0 || strafe !== 0) {
+    // On a ladder, W/S climb instead of walking, so forward input must not carry the player through it.
+    const walkFwd = this.climbing ? 0 : fwd;
+    if (walkFwd !== 0 || strafe !== 0) {
       const fx = -Math.sin(this.yaw);
       const fz = -Math.cos(this.yaw);
       const rx = Math.cos(this.yaw);
       const rz = -Math.sin(this.yaw);
-      let mx = fx * fwd + rx * strafe;
-      let mz = fz * fwd + rz * strafe;
+      let mx = fx * walkFwd + rx * strafe;
+      let mz = fz * walkFwd + rz * strafe;
       const len = Math.hypot(mx, mz);
       if (len > 1) {
         mx /= len;
@@ -274,8 +282,13 @@ export class FirstPersonController {
       this.pos.z += mz * MOVE_SPEED * speedMultiplier * stepDt;
     }
 
+    // Ladders are walk-through: skip them in the horizontal push-out (they still act as floors below).
+    const ladderKeys = new Set(ladderCenters.map(cellKey));
+
     // Horizontal AABB push-out against blocks overlapping the player's vertical span.
-    for (const [bx, by, bz] of blockCenters) {
+    for (const center of blockCenters) {
+      if (ladderKeys.size > 0 && ladderKeys.has(cellKey(center))) continue;
+      const [bx, by, bz] = center;
       if (this.pos.y + PLAYER_HEIGHT - 0.1 <= by - HALF_BLOCK || this.pos.y + 0.1 >= by + HALF_BLOCK) {
         continue;
       }
@@ -295,8 +308,29 @@ export class FirstPersonController {
       this.grounded = false;
     }
 
+    // Climb while the player's body overlaps a ladder cell: W/Up climbs, S/Down descends, otherwise hold.
+    const ladderReach = HALF_BLOCK + PLAYER_RADIUS * 0.5;
+    const wasClimbing = this.climbing;
+    this.climbing = ladderCenters.some(
+      ([bx, by, bz]) =>
+        Math.abs(this.pos.x - bx) < ladderReach &&
+        Math.abs(this.pos.z - bz) < ladderReach &&
+        this.pos.y + 0.05 < by + HALF_BLOCK &&
+        this.pos.y + PLAYER_HEIGHT > by - HALF_BLOCK,
+    );
+    const jumping = this.keys.has('Space') || this.gpJump;
+    if (this.climbing && wasClimbing && jumping) {
+      // Hop off the ladder with a small kick.
+      this.vy = JUMP_SPEED * 0.6 * jumpMultiplier;
+      this.climbing = false;
+    }
+
     const prevY = this.pos.y;
-    this.vy -= gravity * stepDt;
+    if (this.climbing) {
+      this.vy = fwd * CLIMB_SPEED * speedMultiplier;
+    } else {
+      this.vy -= gravity * stepDt;
+    }
     this.pos.y += this.vy * stepDt;
     this.grounded = false;
 
@@ -323,6 +357,7 @@ export class FirstPersonController {
         this.vy = 0;
         this.grounded = true;
       } else if (
+        !ladderKeys.has(cellKey([bx, by, bz])) &&
         this.vy > 0 &&
         prevY + PLAYER_HEIGHT <= bottom + 0.35 &&
         this.pos.y + PLAYER_HEIGHT >= bottom

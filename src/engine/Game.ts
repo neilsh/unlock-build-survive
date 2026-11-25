@@ -247,6 +247,19 @@ export class Game implements GameActions, GameDebugApi {
     });
   }
 
+  /** World centers of climbable ladder blocks (live physics positions while a disaster runs). */
+  private currentLadderCenters(): Vec3[] {
+    const blocks = this.build.getGraph().blocks;
+    const ladders = blocks.filter((b) => b.material === 'ladder');
+    if (ladders.length === 0) return [];
+    if (uiStore.getState().mode !== 'build' && this.physics.isRunning()) {
+      const notLadders = new Set(blocks.filter((b) => b.material !== 'ladder').map((b) => b.id));
+      const live = this.physics.getBlockPositions(notLadders);
+      if (live.length > 0) return live;
+    }
+    return ladders.map((b) => cellToWorld(b.cell));
+  }
+
   private currentBlockCenters(): Vec3[] {
     const openDoors = this.build.getOpenDoorIds();
     if (uiStore.getState().mode !== 'build') {
@@ -274,7 +287,7 @@ export class Game implements GameActions, GameDebugApi {
       const centers = this.currentBlockCenters();
       const jumpMult = (armor?.jumpMultiplier ?? 1) * (sNow.turboMode ? 1.65 : 1);
       const speedMult = sNow.turboMode ? 1.55 : 1;
-      this.firstPerson.update(dt, centers, gravity, jumpMult, speedMult);
+      this.firstPerson.update(dt, centers, gravity, jumpMult, speedMult, this.currentLadderCenters());
       if (this.combat.updatePlayerHealth(dt, centers)) return;
     }
     this.companion.update(
