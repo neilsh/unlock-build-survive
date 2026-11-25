@@ -81,6 +81,74 @@
         "typescript/no-non-null-assertion": "off",
         "typescript/no-unsafe-type-assertion": "off"
       }
+    },
+    {
+      "files": ["src/engine/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "react",
+                "message": "Engine code must not import React; bridge via src/state/store.ts."
+              }
+            ],
+            "patterns": [
+              { "group": ["**/components/**"], "message": "Engine code must not import UI components." }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/components/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              { "name": "three", "message": "UI code must not import three.js; call GameActions instead." },
+              { "name": "@dimforge/rapier3d-compat", "message": "UI code must not import Rapier." }
+            ],
+            "patterns": [
+              { "group": ["three/**"], "message": "UI code must not import three.js." },
+              {
+                "group": ["**/engine/**"],
+                "message": "UI code must not import engine code; use GameActions."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/types/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              { "name": "three", "message": "Pure types/data must not import three.js." },
+              { "name": "react", "message": "Pure types/data must not import React." },
+              { "name": "@dimforge/rapier3d-compat", "message": "Pure types/data must not import Rapier." }
+            ],
+            "patterns": [
+              { "group": ["three/**"], "message": "Pure types/data must not import three.js." },
+              { "group": ["**/engine/**"], "message": "Pure types/data must not import engine code." }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/engine/PhysicsSim.ts", "src/engine/physics/**"],
+      "rules": {
+        "no-restricted-globals": [
+          "error",
+          { "name": "window", "message": "Physics must run headless in Node." }
+        ]
+      }
     }
   ],
   "options": {
