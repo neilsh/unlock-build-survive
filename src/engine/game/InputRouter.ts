@@ -2,19 +2,17 @@
  * Gamepad polling, P2 co-op keyboard/touch/gamepad aggregation, primary-action dispatch, and
  * tool/material/disaster/gear cycling.
  */
-import { isMaterialAllowed } from '../../levels/constraints';
 import { modStore } from '../../mods/modStore';
 import { uiStore } from '../../state/store';
 import { isTwoPlayerCoop } from '../../types/ui';
 import { DISASTER_ORDER, type DisasterType, type MaterialType, type ToolType } from '../../types/blueprint';
 import { GEAR_ORDER, isArmorId, isWeaponId, type GearId, type GearSlot } from '../../types/gear';
-import { MATERIAL_ORDER } from '../../types/materials';
 import type { AudioSynth } from '../AudioSynth';
 import type { BuildController } from '../BuildController';
 import type { CompanionInput } from '../CompanionManager';
 import type { FirstPersonController } from '../FirstPersonController';
 import type { GamepadManager } from '../GamepadManager';
-import { isCreativeSandbox, isSurvivalMode, lockedBySurvivalEnd } from './modeRules';
+import { buildMaterialPool, isCreativeSandbox, isSurvivalMode, lockedBySurvivalEnd } from './modeRules';
 
 export interface InputDeps {
   audio: Pick<AudioSynth, 'resume'>;
@@ -40,6 +38,15 @@ export interface InputDeps {
   undo(): void;
 }
 
+/** Player 2 build-mode presses (split-screen): Enter places, ' erases, / cycles material, ; cycles tool. */
+export type P2Action = 'place' | 'erase' | 'nextMaterial' | 'nextTool';
+const P2_BUILD_KEYS: Record<string, P2Action | undefined> = {
+  Enter: 'place',
+  Quote: 'erase',
+  Slash: 'nextMaterial',
+  Semicolon: 'nextTool',
+};
+
 export class InputRouter {
   private readonly p2Keys = new Set<string>();
   private p2Gamepad: CompanionInput = { moveX: 0, moveY: 0, jump: false, fire: false };
@@ -47,6 +54,8 @@ export class InputRouter {
   /** On-screen joystick/jump button state for the local (P1) player, merged with gamepad input. */
   private touchMove = { x: 0, y: 0, jump: false };
   private p2LookPad = 0;
+  /** Edge-triggered Player 2 build presses since the last `takeP2Actions()`. */
+  private p2Actions: P2Action[] = [];
 
   constructor(private readonly d: InputDeps) {}
 
@@ -62,6 +71,9 @@ export class InputRouter {
       'Enter',
       'Comma',
       'Period',
+      'Slash',
+      'Quote',
+      'Semicolon',
     ]);
     const onP2KeyDown = (e: KeyboardEvent) => {
       if (!p2Codes.has(e.code)) return;
@@ -77,12 +89,17 @@ export class InputRouter {
       }
       if (e.code.startsWith('Arrow')) e.preventDefault();
       this.p2Keys.add(e.code);
+      if (!e.repeat) {
+        const action = P2_BUILD_KEYS[e.code];
+        if (action) this.p2Actions.push(action);
+      }
     };
     const onP2KeyUp = (e: KeyboardEvent) => {
       this.p2Keys.delete(e.code);
     };
     const onP2Blur = () => {
       this.p2Keys.clear();
+      this.p2Actions = [];
       this.p2Touch = { moveX: 0, moveY: 0, jump: false, fire: false };
       this.touchMove = { x: 0, y: 0, jump: false };
     };
@@ -131,6 +148,13 @@ export class InputRouter {
       jump: this.p2Keys.has('ShiftRight') || this.p2Gamepad.jump || this.p2Touch.jump,
       fire: this.p2Keys.has('Enter') || this.p2Gamepad.fire || this.p2Touch.fire,
     };
+  }
+
+  /** Returns and clears the queued Player 2 build presses. */
+  takeP2Actions(): P2Action[] {
+    const out = this.p2Actions;
+    this.p2Actions = [];
+    return out;
   }
 
   /** Player 2 camera turn (-1..1): right stick X, or `,` / `.` on the keyboard. Used in split-screen. */
@@ -236,13 +260,7 @@ export class InputRouter {
 
   private cycleMaterial(step: number): void {
     const s0 = uiStore.getState();
-    const constraints = this.d.build.getConstraints();
-    const customIds =
-      s0.levelId === null && s0.playMode !== 'survival'
-        ? modStore.getState().active.blocks.map((b) => b.id)
-        : [];
-    const baseMaterials = isCreativeSandbox() ? MATERIAL_ORDER : s0.unlockedMaterials;
-    const pool = [...baseMaterials, ...customIds].filter((m) => isMaterialAllowed(constraints, m));
+    const pool = buildMaterialPool(this.d.build.getConstraints());
     if (pool.length === 0) return;
     const idx = pool.indexOf(s0.material);
     const base = idx >= 0 ? idx : 0;

@@ -40,6 +40,7 @@ import { CameraPanel } from './CameraPanel';
 import { DisasterPanel } from './DisasterPanel';
 import { LevelPanel } from './LevelPanel';
 import { MainMenu } from './MainMenu';
+import { P2Panel } from './P2Panel';
 import { ModsPanel } from './ModsPanel';
 import { ShopPanel } from './ShopPanel';
 import { TouchControls, useIsTouchDevice } from './TouchControls';
@@ -58,6 +59,14 @@ export function HUD({ actions }: { actions: GameActions }) {
     const id = window.setTimeout(() => setClearedFlash(s.damageFlash), 260);
     return () => window.clearTimeout(id);
   }, [s.damageFlash, clearedFlash]);
+
+  const [clearedFlash2, setClearedFlash2] = useState(0);
+  const flashing2 = s.p2DamageFlash > clearedFlash2;
+  useEffect(() => {
+    if (s.p2DamageFlash <= clearedFlash2) return;
+    const id = window.setTimeout(() => setClearedFlash2(s.p2DamageFlash), 260);
+    return () => window.clearTimeout(id);
+  }, [s.p2DamageFlash, clearedFlash2]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -84,7 +93,14 @@ export function HUD({ actions }: { actions: GameActions }) {
       {s.firstPerson && flashing && (
         <div
           aria-hidden="true"
-          className="pointer-events-none fixed inset-0 z-10 bg-rose-600/35 ring-8 ring-inset ring-rose-500/60"
+          className={`pointer-events-none fixed inset-y-0 left-0 z-10 bg-rose-600/35 ring-8 ring-inset ring-rose-500/60 ${split ? 'w-1/2' : 'w-full'}`}
+        />
+      )}
+      {split && !s.menuOpen && flashing2 && (
+        <div
+          aria-hidden="true"
+          data-testid="p2-damage-flash"
+          className="pointer-events-none fixed inset-y-0 right-0 z-10 w-1/2 bg-rose-600/35 ring-8 ring-inset ring-rose-500/60"
         />
       )}
 
@@ -113,6 +129,8 @@ export function HUD({ actions }: { actions: GameActions }) {
           </span>
         </div>
       )}
+
+      {split && !s.menuOpen && <P2Panel actions={actions} />}
 
       <div className="absolute left-2 top-16">
         <BuildPanel actions={actions} />
@@ -420,7 +438,7 @@ export function HUD({ actions }: { actions: GameActions }) {
               <>
                 <span className="flex items-center gap-1.5 text-sm font-black">
                   <Heart size={18} aria-hidden="true" className="fill-rose-500 text-rose-500" />
-                  HP {Math.ceil(s.playerHp)} / {s.playerMaxHp}
+                  {split ? 'P1 ' : ''}HP {Math.ceil(s.playerHp)} / {s.playerMaxHp}
                 </span>
                 <div className="h-3 w-36 overflow-hidden rounded-full bg-sky-100 shadow-inner">
                   <div

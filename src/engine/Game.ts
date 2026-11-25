@@ -34,6 +34,7 @@ import { hasSavedGame } from '../levels/saveGame';
 import { BuildController } from './BuildController';
 import { COMPANION_WEAPON, CompanionManager } from './CompanionManager';
 import { FirstPersonController } from './FirstPersonController';
+import { P2Controller } from './game/P2Controller';
 import { PlayerBody } from './PlayerBody';
 import { GamepadManager } from './GamepadManager';
 import { PHYSICS_TUNING, PhysicsSim, type SimOptions } from './PhysicsSim';
@@ -72,6 +73,7 @@ export class Game implements GameActions, GameDebugApi {
   private readonly session: SessionController;
   private readonly input: InputRouter;
   private readonly combat: CombatController;
+  private readonly p2: P2Controller;
 
   /** Incremented on every start/rewind so a slow async start cannot resurrect a cancelled run. */
   private runToken = 0;
@@ -113,6 +115,13 @@ export class Game implements GameActions, GameDebugApi {
       currentBlockCenters: () => this.currentBlockCenters(),
       onSurvivalKO: (cause) => this.endSurvivalByKO(cause),
       rewind: () => this.rewind(),
+    });
+    this.p2 = new P2Controller({
+      audio: this.audio,
+      build: this.build,
+      companion: this.companion,
+      physics: this.physics,
+      getCamera: () => this.scene.camera2,
     });
     this.input = new InputRouter({
       audio: this.audio,
@@ -314,6 +323,13 @@ export class Game implements GameActions, GameDebugApi {
       .map((b) => cellToWorld(b.cell));
   }
 
+  /** In split-screen build mode Enter places a block for P2, so it must not also fire the zapper. */
+  private p2InputForCompanion() {
+    const input = this.input.getP2Input();
+    const s = uiStore.getState();
+    return s.multiplayerMode === 'split' && s.mode === 'build' ? { ...input, fire: false } : input;
+  }
+
   private tick(dt: number) {
     this.combat.tickCooldown(dt);
     this.scene.setSplitScreen(uiStore.getState().multiplayerMode === 'split');
@@ -338,7 +354,7 @@ export class Game implements GameActions, GameDebugApi {
       uiStore.getState().multiplayerMode,
       this.physics.isRunning(),
       this.physics.getProjectilePositions(),
-      this.input.getP2Input(),
+      this.p2InputForCompanion(),
       (muzzle, dir) => {
         const res = this.physics.firePlayerWeapon(muzzle, dir, COMPANION_WEAPON);
         this.scene.laserBeam(muzzle, res.hitPoint);
@@ -353,6 +369,8 @@ export class Game implements GameActions, GameDebugApi {
       this.firstPerson.getFeetPosition(),
       this.firstPerson.yaw,
     );
+    this.p2.handleActions(this.input.takeP2Actions());
+    this.p2.updateHealth(dt);
     if (this.scene.isSplitScreen()) {
       const { eye, target } = this.companion.getChaseCamera();
       this.scene.setSecondaryView(eye, target);
@@ -412,6 +430,8 @@ export class Game implements GameActions, GameDebugApi {
     this.build.setTool(t);
     uiStore.setState({ tool: t });
   };
+  setP2Tool: GameActions['setP2Tool'] = (t) => this.p2.setTool(t);
+  setP2Material: GameActions['setP2Material'] = (m) => this.p2.setMaterial(m);
   setMaterial: GameActions['setMaterial'] = (m) => {
     if (isBuiltinMaterial(m)) {
       if (!isCreativeSandbox() && !uiStore.getState().unlockedMaterials.includes(m)) {

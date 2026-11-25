@@ -165,6 +165,12 @@ test.describe('split-screen co-op', () => {
     const box = await page.getByTestId('fp-crosshair').boundingBox();
     const viewport = page.viewportSize()!;
     expect(box!.width).toBeLessThanOrEqual(viewport.width / 2 + 1);
+    // Each player has their own HP readout and build panel.
+    await expect(page.getByTestId('p2-hp')).toBeVisible();
+    await expect(page.getByTestId('p2-tool-block')).toBeVisible();
+    await page.getByTestId('p2-tool-erase').click();
+    await expect(page.getByTestId('p2-tool-erase')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByTestId('tool-block')).toHaveAttribute('aria-pressed', 'true');
     await page.waitForTimeout(500); // let a few split-screen frames render
     await page.screenshot({ path: 'test-results/split-screen.png' });
 

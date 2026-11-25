@@ -56,6 +56,11 @@ export const uiStore = createStore<UIState>({
   playerHp: 100,
   playerMaxHp: 100,
   damageFlash: 0,
+  p2Hp: 100,
+  p2MaxHp: 100,
+  p2DamageFlash: 0,
+  p2Tool: 'block',
+  p2Material: 'stone',
 });
 
 const selectAll = (state: UIState): UIState => state;

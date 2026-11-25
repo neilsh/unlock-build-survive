@@ -58,4 +58,6 @@ export interface SimContext {
   linksDirty: boolean;
   standingRatio: number;
   playerInvuln: number;
+  /** Hit-protection timer for Player 2 (split-screen), separate from Player 1's. */
+  player2Invuln: number;
 }

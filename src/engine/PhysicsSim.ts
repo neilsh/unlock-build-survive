@@ -178,9 +178,14 @@ export class PhysicsSim {
   }
 
   /** Evaluates disaster & debris hits against a First-Person player at `feet`. */
-  checkPlayerDamage(feet: Vec3, dt: number, protection?: PlayerProtection): PlayerHitResult {
+  checkPlayerDamage(
+    feet: Vec3,
+    dt: number,
+    protection?: PlayerProtection,
+    player: 1 | 2 = 1,
+  ): PlayerHitResult {
     return (
-      this.run?.checkPlayerDamage(feet, dt, protection) ?? {
+      this.run?.checkPlayerDamage(feet, dt, protection, player) ?? {
         damage: 0,
         cause: null,
         impact: false,
@@ -255,6 +260,7 @@ class SimRun implements SimContext {
   linksDirty = true;
   standingRatio = 1;
   playerInvuln = 0;
+  player2Invuln = 0;
 
   constructor(
     readonly R: Rapier,
@@ -392,8 +398,13 @@ class SimRun implements SimContext {
     }
   }
 
-  checkPlayerDamage(feet: Vec3, dt: number, protection?: PlayerProtection): PlayerHitResult {
-    return checkPlayerDamage(this, feet, dt, protection);
+  checkPlayerDamage(
+    feet: Vec3,
+    dt: number,
+    protection?: PlayerProtection,
+    player: 1 | 2 = 1,
+  ): PlayerHitResult {
+    return checkPlayerDamage(this, feet, dt, protection, player);
   }
 
   firePlayerWeapon(origin: Vec3, dir: Vec3, weapon: WeaponDef): WeaponFireResult {

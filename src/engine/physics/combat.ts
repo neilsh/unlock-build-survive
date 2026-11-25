@@ -15,10 +15,12 @@ export function checkPlayerDamage(
   feet: Vec3,
   dt: number,
   protection?: PlayerProtection,
+  player: 1 | 2 = 1,
 ): PlayerHitResult {
   if (!ctx.running) return { damage: 0, cause: null, impact: false };
   const safeDt = Math.max(0, dt);
-  ctx.playerInvuln = Math.max(0, ctx.playerInvuln - safeDt);
+  const invulnKey = player === 2 ? 'player2Invuln' : 'playerInvuln';
+  ctx[invulnKey] = Math.max(0, ctx[invulnKey] - safeDt);
   const [px, py, pz] = feet;
 
   if (py < T.player.fallY) {
@@ -34,7 +36,7 @@ export function checkPlayerDamage(
     cause = 'Swept by the flood!';
   }
 
-  if (ctx.playerInvuln <= 0) {
+  if (ctx[invulnKey] <= 0) {
     let destroyedProj = false;
     for (const proj of ctx.projectiles) {
       if (proj.destroyed) continue;
@@ -52,7 +54,7 @@ export function checkPlayerDamage(
         damage += T.projectileDamage[proj.kind];
         cause = 'Hit by a falling hazard!';
         impact = true;
-        ctx.playerInvuln = T.player.invulnSeconds;
+        ctx[invulnKey] = T.player.invulnSeconds;
         break;
       }
     }
@@ -73,7 +75,7 @@ export function checkPlayerDamage(
           damage += T.player.blockDamage;
           cause = 'Crushed by falling debris!';
           impact = true;
-          ctx.playerInvuln = T.player.invulnSeconds;
+          ctx[invulnKey] = T.player.invulnSeconds;
           break;
         }
       }

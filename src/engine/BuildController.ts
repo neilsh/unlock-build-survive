@@ -123,6 +123,10 @@ export class BuildController {
   private readonly prevBeforeRender: THREE.Object3D['onBeforeRender'];
   private readonly beforeRender: THREE.Object3D['onBeforeRender'];
   private crosshairMode = false;
+  /** Player 2's brace anchor (split-screen); Player 1's is `braceStart`. */
+  private p2BraceStart: Vec3 | null = null;
+  /** When set, crosshair rays and corner picks use this camera instead of the main one. */
+  private rayCamera: THREE.PerspectiveCamera | null = null;
   private time = 0;
 
   constructor(
@@ -279,6 +283,32 @@ export class BuildController {
     this.crosshairMode = on;
     this.cancelDrag();
     this.updatePreview();
+  }
+
+  /**
+   * Runs a crosshair action as Player 2 (split-screen): with their own tool, material and brace anchor,
+   * aimed through their camera's centre. Player 1's state is restored afterwards.
+   */
+  runAsPlayer2<T>(
+    camera: THREE.PerspectiveCamera,
+    p2: { tool: ToolType; material: MaterialType },
+    fn: () => T,
+  ): T {
+    const saved = { tool: this.tool, material: this.material, brace: this.braceStart };
+    this.tool = p2.tool;
+    this.material = p2.material;
+    this.braceStart = this.p2BraceStart;
+    this.rayCamera = camera;
+    try {
+      return fn();
+    } finally {
+      this.p2BraceStart = this.braceStart;
+      this.tool = saved.tool;
+      this.material = saved.material;
+      this.braceStart = saved.brace;
+      this.rayCamera = null;
+      this.updatePreview();
+    }
   }
 
   hasActiveBrace(): boolean {
@@ -632,16 +662,17 @@ export class BuildController {
   }
 
   private aimRayFromNdc(): boolean {
-    this.sceneMgr.camera.updateMatrixWorld();
+    const cam = this.rayCamera ?? this.sceneMgr.camera;
+    cam.updateMatrixWorld();
     // Meshes added since the last render have a stale matrixWorld, which raycasting reads.
     this.sceneMgr.buildRoot.updateMatrixWorld(true);
     this.sceneMgr.islandTop.updateMatrixWorld();
-    this.raycaster.setFromCamera(this.ndc, this.sceneMgr.camera);
+    this.raycaster.setFromCamera(this.ndc, cam);
     return true;
   }
 
   private pickCenterCorner(): Vec3 | null {
-    const cam = this.sceneMgr.camera;
+    const cam = this.rayCamera ?? this.sceneMgr.camera;
     cam.updateMatrixWorld();
     const v = this.tmpVec;
     let best: Vec3 | null = null;
@@ -828,6 +859,7 @@ export class BuildController {
     this.releaseCapture();
     if (this.braceStart) this.sceneMgr.setControlsEnabled(true);
     this.braceStart = null;
+    this.p2BraceStart = null;
     this.pressed = null;
     this.updatePreview();
   }

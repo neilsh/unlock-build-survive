@@ -81,12 +81,21 @@ export interface UIState {
   playerMaxHp: number;
   /** Incremented whenever the player takes a sharp hit (triggers HUD flash). */
   damageFlash: number;
+  /** Player 2's own health, tool and material in 2P split-screen. */
+  p2Hp: number;
+  p2MaxHp: number;
+  p2DamageFlash: number;
+  p2Tool: ToolType;
+  p2Material: MaterialType;
 }
 
 /** Everything the HUD can ask the engine to do. Implemented by `Game`. */
 export interface GameActions {
   setTool(t: ToolType): void;
   setMaterial(m: MaterialType): void;
+  /** Player 2's own tool / material (2P split-screen). */
+  setP2Tool(t: ToolType): void;
+  setP2Material(m: MaterialType): void;
   setMirrorX(on: boolean): void;
   setDisaster(d: DisasterType): void;
   setStrength(s: Strength): void;

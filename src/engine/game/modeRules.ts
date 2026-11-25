@@ -1,6 +1,10 @@
 /** Pure predicates over the current play mode, shared by the Game controllers. */
+import { isMaterialAllowed } from '../../levels/constraints';
 import { levelStore } from '../../levels/levelStore';
+import { modStore } from '../../mods/modStore';
 import { uiStore } from '../../state/store';
+import type { BuildConstraints, MaterialType } from '../../types/blueprint';
+import { MATERIAL_ORDER } from '../../types/materials';
 
 export function isCreativeSandbox(): boolean {
   const s = uiStore.getState();
@@ -29,4 +33,13 @@ export function lockedByLevel(): boolean {
   if (uiStore.getState().levelId === null) return false;
   levelStore.setState({ notice: 'This level has its own disaster. Leave the level to pick another.' });
   return true;
+}
+
+/** Materials a player may currently cycle through (unlocked + mod blocks, minus level-forbidden ones). */
+export function buildMaterialPool(constraints: BuildConstraints | null | undefined): MaterialType[] {
+  const s = uiStore.getState();
+  const customIds =
+    s.levelId === null && s.playMode !== 'survival' ? modStore.getState().active.blocks.map((b) => b.id) : [];
+  const base = isCreativeSandbox() ? MATERIAL_ORDER : s.unlockedMaterials;
+  return [...base, ...customIds].filter((m) => isMaterialAllowed(constraints, m));
 }
