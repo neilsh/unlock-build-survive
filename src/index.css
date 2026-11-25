@@ -11,3 +11,34 @@ body {
   background: #bfe6ff;
   font-family: system-ui, sans-serif;
 }
+
+@keyframes ubs-cloud-drift {
+  from {
+    transform: translateX(-20vw);
+  }
+  to {
+    transform: translateX(120vw);
+  }
+}
+@keyframes ubs-block-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+.ubs-cloud {
+  left: 0;
+  animation: ubs-cloud-drift linear infinite;
+}
+.ubs-block {
+  animation: ubs-block-bob 3s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ubs-cloud,
+  .ubs-block {
+    animation: none;
+  }
+}

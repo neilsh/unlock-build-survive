@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useUIState } from '../state/store';
+import { MenuBackdrop } from './MenuBackdrop';
 import type { AddonId, GameActions, MultiplayerMode } from '../types/ui';
 
 const EXTRA_ADDONS: ReadonlyArray<{
@@ -105,9 +106,10 @@ export function MainMenu({ actions, onOpenChallenges, onOpenShop }: MainMenuProp
     <div
       data-testid="main-menu"
       aria-label="Main Menu"
-      className="pointer-events-auto fixed inset-0 z-20 flex items-center justify-center overflow-y-auto bg-sky-950/45 p-4 backdrop-blur-sm"
+      className={`pointer-events-auto fixed inset-0 z-20 flex items-center justify-center overflow-y-auto p-4 ${s.hasStarted ? 'bg-sky-950/45 backdrop-blur-sm' : ''}`}
     >
-      <div className="flex w-full max-w-3xl flex-col gap-4 rounded-3xl bg-sky-50/95 p-6 text-sky-950 shadow-2xl ring-2 ring-white/80">
+      {!s.hasStarted && <MenuBackdrop />}
+      <div className="relative flex w-full max-w-3xl flex-col gap-4 rounded-3xl bg-sky-50/95 p-6 text-sky-950 shadow-2xl ring-2 ring-white/80">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <div className="flex flex-wrap items-baseline gap-2.5">
