@@ -42,6 +42,7 @@ export class FirstPersonController {
 
   private enabled = false;
   private paused = false;
+  private arrowKeysEnabled = true;
   private readonly keys = new Set<string>();
   private dragPointerId: number | null = null;
   private lastPointer = { x: 0, y: 0 };
@@ -160,6 +161,11 @@ export class FirstPersonController {
     if (paused) this.clearInputState();
   }
 
+  /** Enables or disables Arrow key movement (disabled in 2P Co-op so Player 2 can use Arrows). */
+  setArrowKeysEnabled(on: boolean): void {
+    this.arrowKeysEnabled = on;
+  }
+
   isEnabled(): boolean {
     return this.enabled;
   }
@@ -229,7 +235,13 @@ export class FirstPersonController {
     return [-Math.sin(this.yaw) * cp, Math.sin(this.pitch), -Math.cos(this.yaw) * cp];
   }
 
-  update(dt: number, blockCenters: readonly Vec3[], gravity = 9.81, jumpMultiplier = 1): void {
+  update(
+    dt: number,
+    blockCenters: readonly Vec3[],
+    gravity = 9.81,
+    jumpMultiplier = 1,
+    speedMultiplier = 1,
+  ): void {
     if (!this.enabled) return;
     const stepDt = Math.min(Math.max(dt, 0), MAX_STEP_DT);
     if (stepDt <= 0) {
@@ -238,11 +250,11 @@ export class FirstPersonController {
     }
 
     const kFwd =
-      (this.keys.has('KeyW') || this.keys.has('ArrowUp') ? 1 : 0) -
-      (this.keys.has('KeyS') || this.keys.has('ArrowDown') ? 1 : 0);
+      (this.keys.has('KeyW') || (this.arrowKeysEnabled && this.keys.has('ArrowUp')) ? 1 : 0) -
+      (this.keys.has('KeyS') || (this.arrowKeysEnabled && this.keys.has('ArrowDown')) ? 1 : 0);
     const kStrafe =
-      (this.keys.has('KeyD') || this.keys.has('ArrowRight') ? 1 : 0) -
-      (this.keys.has('KeyA') || this.keys.has('ArrowLeft') ? 1 : 0);
+      (this.keys.has('KeyD') || (this.arrowKeysEnabled && this.keys.has('ArrowRight')) ? 1 : 0) -
+      (this.keys.has('KeyA') || (this.arrowKeysEnabled && this.keys.has('ArrowLeft')) ? 1 : 0);
     const fwd = Math.max(-1, Math.min(1, kFwd + this.gpForward));
     const strafe = Math.max(-1, Math.min(1, kStrafe + this.gpStrafe));
 
@@ -258,8 +270,8 @@ export class FirstPersonController {
         mx /= len;
         mz /= len;
       }
-      this.pos.x += mx * MOVE_SPEED * stepDt;
-      this.pos.z += mz * MOVE_SPEED * stepDt;
+      this.pos.x += mx * MOVE_SPEED * speedMultiplier * stepDt;
+      this.pos.z += mz * MOVE_SPEED * speedMultiplier * stepDt;
     }
 
     // Horizontal AABB push-out against blocks overlapping the player's vertical span.

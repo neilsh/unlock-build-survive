@@ -7,7 +7,7 @@ import {
   UNLOCKABLE_MATERIALS,
   UNLOCKABLE_PRESETS,
 } from '../types/blueprint';
-import { GEAR, GEAR_ORDER } from '../types/gear';
+import { BASE_GEAR, DEFAULT_WEAPON, GEAR, GEAR_ORDER } from '../types/gear';
 import { LEVELS } from './levels';
 import {
   CLEAR_BONUS,
@@ -199,9 +199,14 @@ describe('points and shop unlocks', () => {
   });
 
   it('validates first-person gear metadata, shared points pool, and gear persistence', () => {
-    expect(GEAR_ORDER).toHaveLength(7);
-    for (const id of GEAR_ORDER) {
+    expect(GEAR_ORDER).toHaveLength(8);
+    for (const id of BASE_GEAR) {
+      expect(GEAR[id].cost).toBe(0);
+    }
+    for (const id of GEAR_ORDER.filter((g) => !BASE_GEAR.includes(g))) {
       expect(GEAR[id].cost).toBeGreaterThan(0);
+    }
+    for (const id of GEAR_ORDER) {
       expect(GEAR[id].description.trim().length).toBeGreaterThan(0);
     }
 
@@ -225,12 +230,16 @@ describe('points and shop unlocks', () => {
     const storage = fakeStorage();
     saveGear({ unlocked: ['hard_hat', 'slingshot'], armor: 'hard_hat', weapon: 'slingshot' }, storage);
     expect(loadGear(storage)).toEqual({
-      unlocked: ['hard_hat', 'slingshot'],
+      unlocked: [...BASE_GEAR, 'hard_hat', 'slingshot'],
       armor: 'hard_hat',
       weapon: 'slingshot',
     });
 
-    expect(loadGear(fakeStorage('{bad', GEAR_KEY))).toEqual({ unlocked: [], armor: null, weapon: null });
+    expect(loadGear(fakeStorage('{bad', GEAR_KEY))).toEqual({
+      unlocked: [...BASE_GEAR],
+      armor: null,
+      weapon: DEFAULT_WEAPON,
+    });
     expect(
       loadGear(
         fakeStorage(
@@ -242,11 +251,19 @@ describe('points and shop unlocks', () => {
           GEAR_KEY,
         ),
       ),
-    ).toEqual({ unlocked: ['slingshot'], armor: null, weapon: 'slingshot' });
+    ).toEqual({ unlocked: [...BASE_GEAR, 'slingshot'], armor: null, weapon: 'slingshot' });
   });
 
   it('validates quick-builder preset metadata, shared points pool, and persistence', () => {
-    expect(UNLOCKABLE_PRESETS).toEqual(['boat', 'base', 'laser_tower', 'fortress']);
+    expect(UNLOCKABLE_PRESETS).toEqual([
+      'pyramid',
+      'boat',
+      'treehouse',
+      'base',
+      'laser_tower',
+      'dome',
+      'fortress',
+    ]);
     let prevCost = 0;
     for (const p of UNLOCKABLE_PRESETS) {
       const def = PRESET_DEFS[p];

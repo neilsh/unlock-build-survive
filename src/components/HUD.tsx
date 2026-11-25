@@ -8,7 +8,26 @@
  *
  * The HUD root ignores pointer events so the 3D view stays draggable everywhere except on the cards.
  */
-import { Crosshair, Heart, Menu, Shield, Sparkles } from 'lucide-react';
+import {
+  ArrowDown,
+  ArrowLeft,
+  ArrowRight,
+  ArrowUp,
+  Bot,
+  CloudLightning,
+  Compass,
+  Crosshair,
+  Heart,
+  Menu,
+  Moon,
+  RotateCcw,
+  Save,
+  Shield,
+  Sparkles,
+  Swords,
+  Users,
+  Zap,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useLevelInfo } from '../levels/levelStore';
 import { useUIState } from '../state/store';
@@ -94,6 +113,16 @@ export function HUD({ actions }: { actions: GameActions }) {
           <span>Menu</span>
         </button>
 
+        <button
+          type="button"
+          data-testid="hud-save"
+          onClick={() => actions.saveGame()}
+          className="pointer-events-auto flex min-h-11 items-center gap-1.5 rounded-2xl bg-sky-500 px-3.5 text-sm font-extrabold text-white shadow-md transition hover:bg-sky-400 active:scale-95"
+        >
+          <Save size={17} aria-hidden="true" />
+          <span>Save</span>
+        </button>
+
         <span
           data-testid="mode-badge"
           className={`flex min-h-11 items-center gap-1.5 rounded-2xl px-3.5 text-xs font-black shadow-md backdrop-blur ${
@@ -104,12 +133,73 @@ export function HUD({ actions }: { actions: GameActions }) {
                 : 'bg-amber-300 text-amber-950'
           }`}
         >
+          Mode:{' '}
           {isSurvival
             ? `Survival · Wave ${s.survivalWave}${s.survivalBestWave > 0 ? ` · Best ${s.survivalBestWave}` : ''}`
             : s.levelId !== null
               ? 'Challenge'
               : 'Creative'}
         </span>
+
+        {s.exploreMode && (
+          <span
+            data-testid="explore-badge"
+            className="flex min-h-11 items-center gap-1.5 rounded-2xl bg-teal-600 px-3.5 text-xs font-black text-white shadow-md backdrop-blur"
+          >
+            <Compass size={16} aria-hidden="true" />
+            Add-On: Explore
+          </span>
+        )}
+
+        {s.moonGravity && (
+          <span
+            data-testid="addon-badge-moon"
+            className="flex min-h-11 items-center gap-1.5 rounded-2xl bg-indigo-600 px-3 text-xs font-black text-white shadow-md backdrop-blur"
+          >
+            <Moon size={15} aria-hidden="true" />
+            Moon
+          </span>
+        )}
+
+        {s.turboMode && (
+          <span
+            data-testid="addon-badge-turbo"
+            className="flex min-h-11 items-center gap-1.5 rounded-2xl bg-amber-500 px-3 text-xs font-black text-amber-950 shadow-md backdrop-blur"
+          >
+            <Zap size={15} aria-hidden="true" />
+            Turbo
+          </span>
+        )}
+
+        {s.megaStorm && (
+          <span
+            data-testid="addon-badge-megastorm"
+            className="flex min-h-11 items-center gap-1.5 rounded-2xl bg-rose-600 px-3 text-xs font-black text-white shadow-md backdrop-blur"
+          >
+            <CloudLightning size={15} aria-hidden="true" />
+            Mega Storm
+          </span>
+        )}
+
+        {s.multiplayerMode !== 'solo' && (
+          <span
+            data-testid="mp-badge"
+            className="flex min-h-11 items-center gap-1.5 rounded-2xl bg-violet-600 px-3.5 text-xs font-black text-white shadow-md backdrop-blur"
+          >
+            {s.multiplayerMode === 'coop' ? (
+              <Users size={16} aria-hidden="true" />
+            ) : s.multiplayerMode === 'battle' ? (
+              <Swords size={16} aria-hidden="true" />
+            ) : (
+              <Bot size={16} aria-hidden="true" />
+            )}
+            {s.multiplayerMode === 'coop'
+              ? 'Multiplayer: 2P Co-op'
+              : s.multiplayerMode === 'battle'
+                ? 'Multiplayer: 2P Battle'
+                : 'Multiplayer: AI Bot'}
+          </span>
+        )}
 
         <LevelPanel
           actions={actions}
@@ -128,6 +218,156 @@ export function HUD({ actions }: { actions: GameActions }) {
       <div className="absolute right-2 top-16">
         <CameraPanel actions={actions} />
       </div>
+
+      {s.multiplayerMode === 'battle' && !s.menuOpen && (
+        <div className="pointer-events-none fixed inset-x-2 top-16 flex justify-center">
+          <div
+            data-testid="battle-scoreboard"
+            className="pointer-events-auto flex flex-wrap items-center gap-2 rounded-2xl bg-white/95 px-3.5 py-2 text-xs font-black shadow-lg backdrop-blur"
+          >
+            <span className="rounded-full bg-violet-100 px-2.5 py-1 text-violet-950">
+              Round {s.battleRound}
+            </span>
+            <span
+              className={`rounded-full px-2.5 py-1 ${
+                s.battleTurn === 1
+                  ? 'bg-amber-300 text-amber-950 ring-2 ring-amber-500'
+                  : 'bg-sky-100 text-sky-900'
+              }`}
+            >
+              P1: {s.battleP1Score} ★
+            </span>
+            <span
+              className={`rounded-full px-2.5 py-1 ${
+                s.battleTurn === 2
+                  ? 'bg-cyan-300 text-cyan-950 ring-2 ring-cyan-500'
+                  : 'bg-sky-100 text-sky-900'
+              }`}
+            >
+              P2: {s.battleP2Score} ★
+            </span>
+            <span className="text-sky-800">Turn: Player {s.battleTurn}</span>
+            {s.battleTurn === 1 && s.battleP1Done && (
+              <button
+                type="button"
+                data-testid="battle-next-turn"
+                onClick={() => actions.nextBattleTurn()}
+                className="rounded-xl bg-emerald-400 px-3 py-1 text-emerald-950 shadow-sm hover:bg-emerald-300 active:scale-95"
+              >
+                Pass to Player 2
+              </button>
+            )}
+            {s.battleTurn === 2 && s.battleP2Done && (
+              <button
+                type="button"
+                data-testid="battle-next-turn"
+                onClick={() => actions.nextBattleTurn()}
+                className="rounded-xl bg-amber-300 px-3 py-1 text-amber-950 shadow-sm hover:bg-amber-200 active:scale-95"
+              >
+                {s.battleP1Score === s.battleP2Score
+                  ? 'Tie! Next Round'
+                  : s.battleP1Score > s.battleP2Score
+                    ? 'P1 Leads! Next Round'
+                    : 'P2 Leads! Next Round'}
+              </button>
+            )}
+            <button
+              type="button"
+              data-testid="battle-reset"
+              aria-label="Reset Battle"
+              onClick={() => actions.resetBattle()}
+              className="inline-flex items-center gap-1 rounded-xl bg-sky-100 px-2.5 py-1 text-sky-900 hover:bg-sky-200 active:scale-95"
+            >
+              <RotateCcw size={13} aria-hidden="true" />
+              Reset
+            </button>
+          </div>
+        </div>
+      )}
+
+      {s.multiplayerMode === 'coop' && !s.menuOpen && (
+        <div
+          data-testid="p2-touch-pad"
+          aria-label="Player 2 controls"
+          className="pointer-events-auto fixed bottom-28 right-2 z-10 flex flex-col items-center gap-1.5 rounded-3xl bg-white/90 p-2.5 text-xs font-black shadow-xl backdrop-blur"
+        >
+          <span className="text-[10px] font-black uppercase tracking-wide text-cyan-800">P2 Controls</span>
+          <div className="grid grid-cols-3 gap-1">
+            <span />
+            <button
+              type="button"
+              aria-label="P2 Forward"
+              onPointerDown={() => actions.setP2Control({ moveY: 1 })}
+              onPointerUp={() => actions.setP2Control({ moveY: 0 })}
+              onPointerLeave={() => actions.setP2Control({ moveY: 0 })}
+              onPointerCancel={() => actions.setP2Control({ moveY: 0 })}
+              className="flex size-9 items-center justify-center rounded-xl bg-cyan-100 text-cyan-950 active:bg-cyan-300"
+            >
+              <ArrowUp size={16} />
+            </button>
+            <span />
+            <button
+              type="button"
+              aria-label="P2 Left"
+              onPointerDown={() => actions.setP2Control({ moveX: -1 })}
+              onPointerUp={() => actions.setP2Control({ moveX: 0 })}
+              onPointerLeave={() => actions.setP2Control({ moveX: 0 })}
+              onPointerCancel={() => actions.setP2Control({ moveX: 0 })}
+              className="flex size-9 items-center justify-center rounded-xl bg-cyan-100 text-cyan-950 active:bg-cyan-300"
+            >
+              <ArrowLeft size={16} />
+            </button>
+            <button
+              type="button"
+              aria-label="P2 Back"
+              onPointerDown={() => actions.setP2Control({ moveY: -1 })}
+              onPointerUp={() => actions.setP2Control({ moveY: 0 })}
+              onPointerLeave={() => actions.setP2Control({ moveY: 0 })}
+              onPointerCancel={() => actions.setP2Control({ moveY: 0 })}
+              className="flex size-9 items-center justify-center rounded-xl bg-cyan-100 text-cyan-950 active:bg-cyan-300"
+            >
+              <ArrowDown size={16} />
+            </button>
+            <button
+              type="button"
+              aria-label="P2 Right"
+              onPointerDown={() => actions.setP2Control({ moveX: 1 })}
+              onPointerUp={() => actions.setP2Control({ moveX: 0 })}
+              onPointerLeave={() => actions.setP2Control({ moveX: 0 })}
+              onPointerCancel={() => actions.setP2Control({ moveX: 0 })}
+              className="flex size-9 items-center justify-center rounded-xl bg-cyan-100 text-cyan-950 active:bg-cyan-300"
+            >
+              <ArrowRight size={16} />
+            </button>
+          </div>
+          <div className="flex gap-1">
+            <button
+              type="button"
+              aria-label="P2 Jump"
+              onPointerDown={() => actions.setP2Control({ jump: true })}
+              onPointerUp={() => actions.setP2Control({ jump: false })}
+              onPointerLeave={() => actions.setP2Control({ jump: false })}
+              onPointerCancel={() => actions.setP2Control({ jump: false })}
+              className="rounded-xl bg-sky-200 px-2.5 py-1.5 text-[11px] font-black text-sky-950 active:bg-sky-300"
+            >
+              Jump
+            </button>
+            <button
+              type="button"
+              aria-label="P2 Zap"
+              onPointerDown={() => actions.setP2Control({ fire: true })}
+              onPointerUp={() => actions.setP2Control({ fire: false })}
+              onPointerLeave={() => actions.setP2Control({ fire: false })}
+              onPointerCancel={() => actions.setP2Control({ fire: false })}
+              className="inline-flex items-center gap-0.5 rounded-xl bg-amber-300 px-2.5 py-1.5 text-[11px] font-black text-amber-950 active:bg-amber-400"
+            >
+              <Zap size={12} aria-hidden="true" />
+              Zap
+            </button>
+          </div>
+          <span className="text-[10px] font-bold text-sky-700">Arrows + R-Shift + Enter / Pad</span>
+        </div>
+      )}
 
       {/* The result banner and FP HP bar stack just above the disaster bar so they never hide the building. */}
       <div className="absolute inset-x-2 bottom-2 flex flex-col items-center gap-2">
@@ -186,12 +426,17 @@ export function HUD({ actions }: { actions: GameActions }) {
               </button>
             )}
             <span className="text-sky-700">
+              Controls:{' '}
               {s.gamepadConnected
                 ? s.mode === 'build'
-                  ? 'L-Stick move · R-Stick look · A jump · RT build · LT erase · X tool · LB/RB mat · Start test'
+                  ? s.exploreMode
+                    ? 'L-Stick move · R-Stick look · A jump · RT door · Start test'
+                    : 'L-Stick move · R-Stick look · A jump · RT build · LT erase · X tool · LB/RB mat · Start test'
                   : `L-Stick move · R-Stick look · A jump${s.equippedWeapon ? ' · RT/X fire' : ''} · B rewind`
                 : s.mode === 'build'
-                  ? `WASD move · Space jump · Drag look · Click build${s.equippedWeapon ? ' · F fire' : ''}`
+                  ? s.exploreMode
+                    ? `WASD move · Space jump · Drag look · Click door${s.equippedWeapon ? ' · F fire' : ''}`
+                    : `WASD move · Space jump · Drag look · Click build${s.equippedWeapon ? ' · F fire' : ''}`
                   : `WASD move · Space jump · Drag look${s.equippedWeapon ? ' · Click/F fire' : ''}`}
             </span>
           </div>

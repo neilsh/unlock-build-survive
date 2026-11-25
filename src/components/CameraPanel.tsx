@@ -7,7 +7,10 @@ import { Chip } from './Chip';
 export function CameraPanel({ actions }: { actions: GameActions }) {
   const s = useUIState();
   return (
-    <section aria-label="Camera and sound" className="pointer-events-none flex flex-col gap-2">
+    <section aria-label="Camera and sound" className="pointer-events-none flex flex-col items-center gap-1.5">
+      <span className="rounded-full bg-white/85 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wide text-sky-900 shadow-sm">
+        Sound
+      </span>
       <Chip
         testId="mute-toggle"
         label="Mute"
@@ -23,7 +26,7 @@ export function CameraPanel({ actions }: { actions: GameActions }) {
           className="pointer-events-auto inline-flex min-h-8 items-center justify-center gap-1 rounded-2xl bg-emerald-200 px-2.5 py-1 text-xs font-black text-emerald-950 shadow-md"
         >
           <Gamepad2 size={16} aria-hidden="true" />
-          <span>Pad</span>
+          <span>Gamepad</span>
         </span>
       )}
     </section>

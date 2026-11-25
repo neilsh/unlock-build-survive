@@ -19,7 +19,7 @@ import type {
   ToolType,
   Vec3,
 } from '../types/blueprint';
-import type { GameActions, PlayMode } from '../types/ui';
+import type { AddonId, GameActions, MultiplayerMode, PlayMode } from '../types/ui';
 import {
   ARMORS,
   GEAR_ORDER,
@@ -66,7 +66,9 @@ import {
   tryUnlockPreset,
 } from '../levels/progress';
 import { getSurvivalWave } from '../levels/survival';
+import { hasSavedGame, loadGameState, saveGameState } from '../levels/saveGame';
 import { BuildController } from './BuildController';
+import { COMPANION_WEAPON, CompanionManager, type CompanionInput } from './CompanionManager';
 import { FirstPersonController } from './FirstPersonController';
 import { GamepadManager } from './GamepadManager';
 import { PHYSICS_TUNING, PhysicsSim, type SimOptions } from './PhysicsSim';
@@ -82,6 +84,7 @@ export class Game implements GameActions, GameDebugApi {
   readonly assets = new ProceduralAssets();
   readonly audio = new AudioSynth();
   readonly build: BuildController;
+  readonly companion: CompanionManager;
   readonly firstPerson: FirstPersonController;
   readonly gamepad = new GamepadManager();
   readonly physics = new PhysicsSim();
@@ -93,11 +96,15 @@ export class Game implements GameActions, GameDebugApi {
   private weaponCooldown = 0;
   private survivalBonusPoints = 0;
   private rewardedSurvivalWave = 0;
+  private readonly p2Keys = new Set<string>();
+  private p2Gamepad: CompanionInput = { moveX: 0, moveY: 0, jump: false, fire: false };
+  private p2Touch: CompanionInput = { moveX: 0, moveY: 0, jump: false, fire: false };
   private cleanups: Array<() => void> = [];
 
   constructor(container: HTMLElement) {
     this.scene = new SceneManager(container);
     this.build = new BuildController(this.scene, this.assets, this.audio);
+    this.companion = new CompanionManager(this.scene.scene);
     this.firstPerson = new FirstPersonController(this.scene.camera, this.scene.domElement);
     this.firstPerson.setFireHandler((source) => this.handlePrimaryAction(source));
 
@@ -154,6 +161,7 @@ export class Game implements GameActions, GameDebugApi {
       playMode: 'creative',
       menuOpen: true,
       hasStarted: false,
+      hasSave: hasSavedGame(),
       survivalWave: 1,
       survivalBestWave: survival.bestWave,
       survivalOver: false,
@@ -183,7 +191,7 @@ export class Game implements GameActions, GameDebugApi {
     this.firstPerson.spawn(this.currentBlockCenters());
     this.firstPerson.setEnabled(true);
     this.build.setCrosshairMode(true);
-    this.build.setEnabled(true);
+    this.syncBuildEnabled();
     this.syncInputPaused();
 
     const GAMEPAD_LOST_NOTICE =
@@ -211,9 +219,48 @@ export class Game implements GameActions, GameDebugApi {
         levelStore.setState({ blocksUsed: g.blocks.length, height: buildHeight(g) });
       }),
     );
+
+    if (typeof window !== 'undefined') {
+      const p2Codes = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ShiftRight', 'Enter']);
+      const onP2KeyDown = (e: KeyboardEvent) => {
+        if (!p2Codes.has(e.code)) return;
+        const s = uiStore.getState();
+        if (s.multiplayerMode !== 'coop' || s.menuOpen || this.openModals > 0) return;
+        const target = e.target;
+        if (
+          typeof HTMLElement !== 'undefined' &&
+          target instanceof HTMLElement &&
+          (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
+        ) {
+          return;
+        }
+        if (e.code.startsWith('Arrow')) e.preventDefault();
+        this.p2Keys.add(e.code);
+      };
+      const onP2KeyUp = (e: KeyboardEvent) => {
+        this.p2Keys.delete(e.code);
+      };
+      const onP2Blur = () => {
+        this.p2Keys.clear();
+        this.p2Touch = { moveX: 0, moveY: 0, jump: false, fire: false };
+      };
+      window.addEventListener('keydown', onP2KeyDown);
+      window.addEventListener('keyup', onP2KeyUp);
+      window.addEventListener('blur', onP2Blur);
+      this.cleanups.push(
+        () => window.removeEventListener('keydown', onP2KeyDown),
+        () => window.removeEventListener('keyup', onP2KeyUp),
+        () => window.removeEventListener('blur', onP2Blur),
+      );
+    }
   }
 
   private lastMode: Telemetry['mode'] = 'build';
+
+  private syncBuildEnabled() {
+    const s = uiStore.getState();
+    this.build.setEnabled(s.mode === 'build' && !s.exploreMode);
+  }
 
   private syncInputPaused() {
     const paused = this.openModals > 0 || uiStore.getState().menuOpen;
@@ -294,6 +341,14 @@ export class Game implements GameActions, GameDebugApi {
           survivalFailReason: 'Your building collapsed!',
         });
       }
+      return;
+    }
+    if (s0.multiplayerMode === 'battle') {
+      if (s0.battleTurn === 1 && !s0.battleP1Done) {
+        uiStore.setState({ battleP1Score: s0.battleP1Score + stars, battleP1Done: true });
+      } else if (s0.battleTurn === 2 && !s0.battleP2Done) {
+        uiStore.setState({ battleP2Score: s0.battleP2Score + stars, battleP2Done: true });
+      }
     }
   }
 
@@ -312,18 +367,20 @@ export class Game implements GameActions, GameDebugApi {
   }
 
   private handlePrimaryAction(source: 'click' | 'key'): void {
+    const s = uiStore.getState();
     if (source === 'key') {
-      if (uiStore.getState().equippedWeapon) this.fireWeapon();
+      if (s.equippedWeapon) this.fireWeapon();
       else {
         this.audio.resume();
         this.build.toggleDoorAtCrosshair(6);
       }
       return;
     }
-    if (uiStore.getState().mode === 'build') {
+    if (s.mode === 'build') {
       this.audio.resume();
-      this.build.applyToolAtCrosshair();
-    } else if (!uiStore.getState().equippedWeapon && this.build.toggleDoorAtCrosshair(6)) {
+      if (s.exploreMode) this.build.toggleDoorAtCrosshair(6);
+      else this.build.applyToolAtCrosshair();
+    } else if (!s.equippedWeapon && this.build.toggleDoorAtCrosshair(6)) {
       this.audio.resume();
     } else {
       this.fireWeapon();
@@ -378,8 +435,20 @@ export class Game implements GameActions, GameDebugApi {
     const gp = this.gamepad.poll();
     if (!gp.connected || this.openModals > 0 || uiStore.getState().menuOpen) {
       this.firstPerson.setGamepadInput(0, 0, false);
+      this.p2Gamepad = { moveX: 0, moveY: 0, jump: false, fire: false };
       return;
     }
+    if (uiStore.getState().multiplayerMode === 'coop') {
+      this.firstPerson.setGamepadInput(0, 0, false);
+      this.p2Gamepad = {
+        moveX: gp.moveX,
+        moveY: gp.moveY,
+        jump: gp.jumpHeld,
+        fire: gp.fireHeld || gp.primaryPressed,
+      };
+      return;
+    }
+    this.p2Gamepad = { moveX: 0, moveY: 0, jump: false, fire: false };
     this.firstPerson.setGamepadInput(gp.moveX, gp.moveY, gp.jumpHeld);
     if (gp.lookX !== 0 || gp.lookY !== 0) {
       this.firstPerson.lookAngles(gp.lookX * 2.4 * dt, gp.lookY * 2.0 * dt);
@@ -393,18 +462,26 @@ export class Game implements GameActions, GameDebugApi {
       else this.undo();
     }
     if (uiStore.getState().mode === 'build') {
-      if (gp.primaryPressed) {
-        this.audio.resume();
-        this.build.applyToolAtCrosshair();
+      if (uiStore.getState().exploreMode) {
+        if (gp.primaryPressed) {
+          this.audio.resume();
+          this.build.toggleDoorAtCrosshair(6);
+        }
+        if (gp.toggleFirstPerson) this.cycleDisaster();
+      } else {
+        if (gp.primaryPressed) {
+          this.audio.resume();
+          this.build.applyToolAtCrosshair();
+        }
+        if (gp.secondaryPressed) {
+          this.audio.resume();
+          this.build.eraseAtCrosshair();
+        }
+        if (gp.actionXPressed) this.cycleTool();
+        if (gp.prevShoulder) this.cycleMaterial(-1);
+        if (gp.nextShoulder) this.cycleMaterial(1);
+        if (gp.toggleFirstPerson) this.cycleDisaster();
       }
-      if (gp.secondaryPressed) {
-        this.audio.resume();
-        this.build.eraseAtCrosshair();
-      }
-      if (gp.actionXPressed) this.cycleTool();
-      if (gp.prevShoulder) this.cycleMaterial(-1);
-      if (gp.nextShoulder) this.cycleMaterial(1);
-      if (gp.toggleFirstPerson) this.cycleDisaster();
     } else {
       if (gp.fireHeld) this.fireWeapon();
       if (gp.prevShoulder) this.cycleGear('armor');
@@ -430,13 +507,16 @@ export class Game implements GameActions, GameDebugApi {
     if (this.physics.isRunning()) this.physics.update(dt);
     if (uiStore.getState().firstPerson) {
       const sNow = uiStore.getState();
-      const gravity =
+      const baseGravity =
         sNow.levelId === null && sNow.playMode !== 'survival'
           ? PHYSICS_TUNING.gravity * modStore.getState().active.gravityMultiplier
           : PHYSICS_TUNING.gravity;
+      const gravity = baseGravity * (sNow.moonGravity ? 0.38 : 1);
       const armor = this.getEquippedArmor();
       const centers = this.currentBlockCenters();
-      this.firstPerson.update(dt, centers, gravity, armor?.jumpMultiplier ?? 1);
+      const jumpMult = (armor?.jumpMultiplier ?? 1) * (sNow.turboMode ? 1.65 : 1);
+      const speedMult = sNow.turboMode ? 1.55 : 1;
+      this.firstPerson.update(dt, centers, gravity, jumpMult, speedMult);
       if (this.physics.isRunning()) {
         if (this.isCreativeSandbox()) {
           if (this.firstPerson.getFeetPosition()[1] < PHYSICS_TUNING.player.fallY) {
@@ -490,6 +570,28 @@ export class Game implements GameActions, GameDebugApi {
         this.firstPerson.spawn(centers);
       }
     }
+    const mpMode = uiStore.getState().multiplayerMode;
+    const p2KeyX = (this.p2Keys.has('ArrowRight') ? 1 : 0) - (this.p2Keys.has('ArrowLeft') ? 1 : 0);
+    const p2KeyY = (this.p2Keys.has('ArrowUp') ? 1 : 0) - (this.p2Keys.has('ArrowDown') ? 1 : 0);
+    const p2Input: CompanionInput = {
+      moveX: Math.max(-1, Math.min(1, p2KeyX + this.p2Gamepad.moveX + this.p2Touch.moveX)),
+      moveY: Math.max(-1, Math.min(1, p2KeyY + this.p2Gamepad.moveY + this.p2Touch.moveY)),
+      jump: this.p2Keys.has('ShiftRight') || this.p2Gamepad.jump || this.p2Touch.jump,
+      fire: this.p2Keys.has('Enter') || this.p2Gamepad.fire || this.p2Touch.fire,
+    };
+    this.companion.update(
+      dt,
+      mpMode,
+      this.physics.isRunning(),
+      this.physics.getProjectilePositions(),
+      p2Input,
+      (muzzle, dir) => {
+        const res = this.physics.firePlayerWeapon(muzzle, dir, COMPANION_WEAPON);
+        this.scene.laserBeam(muzzle, res.hitPoint);
+        this.audio.resume();
+        this.audio.playLaserZap();
+      },
+    );
     if (uiStore.getState().survivalOver) return;
     const t = this.physics.getTelemetry();
     const s = uiStore.getState();
@@ -798,6 +900,7 @@ export class Game implements GameActions, GameDebugApi {
         survivalLastReward: 0,
         levelId: null,
       });
+      this.syncBuildEnabled();
       this.syncInputPaused();
       return;
     }
@@ -839,11 +942,12 @@ export class Game implements GameActions, GameDebugApi {
       playerMaxHp,
       playerHp: playerMaxHp,
     });
+    this.syncBuildEnabled();
     this.syncInputPaused();
   };
   loadPreset: GameActions['loadPreset'] = (p: PresetName) => {
-    // Presets would bypass the level's block and material limits, so they are free-build only.
-    if (uiStore.getState().levelId !== null) {
+    // Presets would bypass the level's block and material limits, so they are free-build only unless Explore Mode is on.
+    if (uiStore.getState().levelId !== null && !uiStore.getState().exploreMode) {
       levelStore.setState({ notice: 'Starter builds are for free build. Leave the level to use them.' });
       return;
     }
@@ -858,7 +962,7 @@ export class Game implements GameActions, GameDebugApi {
     this.firstPerson.spawn(this.currentBlockCenters());
   };
   undo = () => {
-    if (this.lockedBySurvivalEnd()) return;
+    if (uiStore.getState().exploreMode || this.lockedBySurvivalEnd()) return;
     this.ensureBuildMode();
     this.build.undo();
   };
@@ -913,7 +1017,7 @@ export class Game implements GameActions, GameDebugApi {
       this.firstPerson.setEnabled(true);
     }
     this.build.setCrosshairMode(true);
-    this.build.setEnabled(uiStore.getState().mode === 'build');
+    this.syncBuildEnabled();
     uiStore.setState({ firstPerson: true });
   };
   setMuted: GameActions['setMuted'] = (muted) => {
@@ -936,6 +1040,134 @@ export class Game implements GameActions, GameDebugApi {
     uiStore.setState({ menuOpen: false });
     this.syncInputPaused();
   };
+  saveGame: GameActions['saveGame'] = () => {
+    const s = uiStore.getState();
+    const ok = saveGameState({
+      version: 1,
+      savedAt: Date.now(),
+      graph: this.build.getGraph(),
+      playMode: s.playMode,
+      exploreMode: s.exploreMode,
+      moonGravity: s.moonGravity,
+      turboMode: s.turboMode,
+      megaStorm: s.megaStorm,
+      multiplayerMode: s.multiplayerMode,
+      disaster: s.disaster,
+      strength: s.strength,
+      survivalWave: s.survivalWave,
+      battleTurn: s.battleTurn,
+      battleRound: s.battleRound,
+      battleP1Score: s.battleP1Score,
+      battleP2Score: s.battleP2Score,
+    });
+    if (!ok) {
+      levelStore.setState({ notice: 'Could not save right now (browser storage blocked).' });
+      return;
+    }
+    uiStore.setState({ hasSave: true });
+    levelStore.setState({ notice: 'Game saved!' });
+    this.audio.resume();
+    this.audio.playUnlock();
+  };
+  continueGame: GameActions['continueGame'] = () => {
+    const saved = loadGameState();
+    if (!saved) {
+      levelStore.setState({ notice: 'No saved game found yet!' });
+      return;
+    }
+    this.ensureBuildMode();
+    this.build.setConstraints(null);
+    this.build.loadGraph(saved.graph);
+    this.companion.setMode(saved.multiplayerMode);
+    this.firstPerson.setArrowKeysEnabled(saved.multiplayerMode !== 'coop');
+    const s0 = uiStore.getState();
+    uiStore.setState({
+      playMode: saved.playMode,
+      exploreMode: saved.exploreMode,
+      moonGravity: Boolean(saved.moonGravity),
+      turboMode: Boolean(saved.turboMode),
+      megaStorm: Boolean(saved.megaStorm),
+      multiplayerMode: saved.multiplayerMode,
+      disaster: saved.disaster,
+      strength: saved.strength,
+      survivalWave: saved.survivalWave,
+      battleTurn: saved.battleTurn,
+      battleRound: saved.battleRound,
+      battleP1Score: saved.battleP1Score,
+      battleP2Score: saved.battleP2Score,
+      battleP1Done: false,
+      battleP2Done: false,
+      levelId: null,
+      menuOpen: false,
+      hasStarted: true,
+      hasSave: true,
+      survivalOver: false,
+      survivalFailReason: null,
+      survivalLastReward: 0,
+      playerHp: s0.playerMaxHp,
+    });
+    this.firstPerson.spawn(this.currentBlockCenters());
+    this.syncBuildEnabled();
+    this.syncInputPaused();
+    levelStore.setState({ notice: 'Loaded your saved village!' });
+  };
+  setExploreMode: GameActions['setExploreMode'] = (on) => {
+    uiStore.setState({ exploreMode: on });
+    this.syncBuildEnabled();
+  };
+  setAddon: GameActions['setAddon'] = (addon: AddonId, on) => {
+    uiStore.setState({ [addon]: on });
+  };
+  setMultiplayerMode: GameActions['setMultiplayerMode'] = (mode: MultiplayerMode) => {
+    this.companion.setMode(mode);
+    this.firstPerson.setArrowKeysEnabled(mode !== 'coop');
+    if (mode === 'battle') {
+      uiStore.setState({
+        multiplayerMode: mode,
+        battleTurn: 1,
+        battleRound: 1,
+        battleP1Score: 0,
+        battleP2Score: 0,
+        battleP1Done: false,
+        battleP2Done: false,
+      });
+    } else {
+      uiStore.setState({ multiplayerMode: mode });
+    }
+  };
+  nextBattleTurn: GameActions['nextBattleTurn'] = () => {
+    const s = uiStore.getState();
+    if (s.multiplayerMode !== 'battle') return;
+    this.rewind();
+    this.build.clear();
+    this.firstPerson.spawn(this.currentBlockCenters());
+    if (s.battleTurn === 1) {
+      uiStore.setState({ battleTurn: 2 });
+    } else {
+      uiStore.setState({
+        battleTurn: 1,
+        battleRound: s.battleRound + 1,
+        battleP1Done: false,
+        battleP2Done: false,
+      });
+    }
+  };
+  resetBattle: GameActions['resetBattle'] = () => {
+    this.rewind();
+    this.build.clear();
+    this.firstPerson.spawn(this.currentBlockCenters());
+    uiStore.setState({
+      battleTurn: 1,
+      battleRound: 1,
+      battleP1Score: 0,
+      battleP2Score: 0,
+      battleP1Done: false,
+      battleP2Done: false,
+    });
+  };
+  setP2Control: GameActions['setP2Control'] = (patch) => {
+    this.p2Touch = { ...this.p2Touch, ...patch };
+  };
   startPlayMode: GameActions['startPlayMode'] = (mode: PlayMode) => {
     this.ensureBuildMode();
     this.build.setConstraints(null);
@@ -952,6 +1184,7 @@ export class Game implements GameActions, GameDebugApi {
         survivalLastReward: 0,
         playerHp: s0.playerMaxHp,
       });
+      this.syncBuildEnabled();
       this.syncInputPaused();
       return;
     }
@@ -985,6 +1218,7 @@ export class Game implements GameActions, GameDebugApi {
       playerHp: playerMaxHp,
     });
     this.firstPerson.spawn(this.currentBlockCenters());
+    this.syncBuildEnabled();
     this.syncInputPaused();
   };
   nextSurvivalWave: GameActions['nextSurvivalWave'] = () => {
@@ -1028,8 +1262,13 @@ export class Game implements GameActions, GameDebugApi {
       options = {
         customMaterials: active.blockMap,
         customDisaster: active.disasterMap.get(type),
-        gravityMultiplier: active.gravityMultiplier,
-        durationSeconds: active.durationSeconds,
+        gravityMultiplier: active.gravityMultiplier * (s0.moonGravity ? 0.38 : 1),
+        durationSeconds: s0.megaStorm ? Math.max(active.durationSeconds, 14) : active.durationSeconds,
+      };
+    } else if (s0.moonGravity || s0.megaStorm) {
+      options = {
+        gravityMultiplier: s0.moonGravity ? 0.38 : 1,
+        durationSeconds: s0.megaStorm ? 14 : DISASTER_SECONDS,
       };
     }
     this.currentRunDuration = options?.durationSeconds ?? DISASTER_SECONDS;
@@ -1042,7 +1281,7 @@ export class Game implements GameActions, GameDebugApi {
     this.physics.stop();
     this.build.resetMeshes();
     this.build.highlight(null);
-    this.build.setEnabled(true);
+    this.syncBuildEnabled();
     const s0 = uiStore.getState();
     uiStore.setState({
       playerHp: s0.playMode === 'survival' && s0.levelId === null ? s0.playerHp : s0.playerMaxHp,
@@ -1098,6 +1337,7 @@ export class Game implements GameActions, GameDebugApi {
     this.physics.stop();
     this.cleanups.forEach((c) => c());
     this.gamepad.dispose();
+    this.companion.dispose();
     this.firstPerson.dispose();
     this.build.dispose();
     this.scene.dispose();

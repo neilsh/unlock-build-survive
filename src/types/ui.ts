@@ -12,12 +12,26 @@ import type { ArmorId, GearId, GearSlot, WeaponId } from './gear';
 import type { GameMod } from '../mods/mods';
 
 export type PlayMode = 'creative' | 'survival';
+export type MultiplayerMode = 'solo' | 'coop' | 'battle' | 'bot';
+export type AddonId = 'moonGravity' | 'turboMode' | 'megaStorm';
 
 /** Everything the HUD renders. Written by the engine side, read by React. */
 export interface UIState {
   playMode: PlayMode;
+  exploreMode: boolean;
+  moonGravity: boolean;
+  turboMode: boolean;
+  megaStorm: boolean;
+  multiplayerMode: MultiplayerMode;
+  battleTurn: 1 | 2;
+  battleRound: number;
+  battleP1Score: number;
+  battleP2Score: number;
+  battleP1Done: boolean;
+  battleP2Done: boolean;
   menuOpen: boolean;
   hasStarted: boolean;
+  hasSave: boolean;
   survivalWave: number;
   survivalBestWave: number;
   survivalOver: boolean;
@@ -98,7 +112,15 @@ export interface GameActions {
   setModalOpen(open: boolean): void;
   openMenu(): void;
   resumeGame(): void;
+  saveGame(): void;
+  continueGame(): void;
   startPlayMode(mode: PlayMode): void;
+  setExploreMode(on: boolean): void;
+  setAddon(addon: AddonId, on: boolean): void;
+  setMultiplayerMode(mode: MultiplayerMode): void;
+  nextBattleTurn(): void;
+  resetBattle(): void;
+  setP2Control(patch: Partial<{ moveX: number; moveY: number; jump: boolean; fire: boolean }>): void;
   nextSurvivalWave(): void;
   restartSurvival(): void;
 }

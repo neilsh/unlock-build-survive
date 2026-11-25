@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import { BASE_MATERIALS, BASE_PRESETS, DEFAULT_STRENGTH, DISASTER_SECONDS } from '../types/blueprint';
+import { BASE_GEAR, DEFAULT_WEAPON } from '../types/gear';
 import type { UIState } from '../types/ui';
 
 type Listener = () => void;
@@ -8,8 +9,20 @@ type Listener = () => void;
 class UIStore {
   private state: UIState = {
     playMode: 'creative',
+    exploreMode: false,
+    moonGravity: false,
+    turboMode: false,
+    megaStorm: false,
+    multiplayerMode: 'solo',
+    battleTurn: 1,
+    battleRound: 1,
+    battleP1Score: 0,
+    battleP2Score: 0,
+    battleP1Done: false,
+    battleP2Done: false,
     menuOpen: true,
     hasStarted: false,
+    hasSave: false,
     survivalWave: 1,
     survivalBestWave: 0,
     survivalOver: false,
@@ -30,9 +43,9 @@ class UIStore {
     points: 0,
     unlockedMaterials: [...BASE_MATERIALS],
     unlockedPresets: [...BASE_PRESETS],
-    unlockedGear: [],
+    unlockedGear: [...BASE_GEAR],
     equippedArmor: null,
-    equippedWeapon: null,
+    equippedWeapon: DEFAULT_WEAPON,
     firstBrokenId: null,
     muted: false,
     canUndo: false,

@@ -390,4 +390,22 @@ describe('BuildController instancing', () => {
     expect(bc.getGraph().blocks).toHaveLength(0);
     expect(bc.isDoorOpen(id)).toBe(false);
   });
+
+  it('blocks manual crosshair placement and erasing when disabled while allowing quick-builder presets', () => {
+    const { bc, scene } = setup();
+    bc.setCrosshairMode(true);
+    bc.setEnabled(false);
+
+    scene.camera.position.set(1, 1.55, 7);
+    scene.camera.lookAt(1, 0, 1);
+    scene.camera.updateMatrixWorld();
+
+    expect(bc.applyToolAtCrosshair()).toBe(false);
+    expect(bc.getGraph().blocks).toHaveLength(0);
+
+    bc.loadPreset('house');
+    expect(bc.getGraph().blocks).toHaveLength(12);
+    expect(bc.eraseAtCrosshair()).toBe(false);
+    expect(bc.getGraph().blocks).toHaveLength(12);
+  });
 });

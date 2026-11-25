@@ -11,7 +11,7 @@ import {
   isPresetName,
 } from '../types/blueprint';
 import type { ArmorId, GearId, WeaponId } from '../types/gear';
-import { GEAR, GEAR_ORDER, isArmorId, isGearId, isWeaponId } from '../types/gear';
+import { BASE_GEAR, DEFAULT_WEAPON, GEAR, GEAR_ORDER, isArmorId, isGearId, isWeaponId } from '../types/gear';
 import type { Level } from './levels';
 
 export type BestStars = Record<string, Stars>;
@@ -221,7 +221,7 @@ export function tryUnlockMaterial(
 }
 
 function normalizeGearIds(items: readonly string[]): GearId[] {
-  const set = new Set<string>();
+  const set = new Set<string>(BASE_GEAR);
   for (const item of items) {
     if (isGearId(item)) set.add(item);
   }
@@ -238,7 +238,7 @@ function sanitizeGearSave(save: GearSave): GearSave {
 
 /** Reads unlocked and equipped first-person gear from storage. */
 export function loadGear(storage: StorageLike | null = defaultStorage()): GearSave {
-  const empty: GearSave = { unlocked: [], armor: null, weapon: null };
+  const empty: GearSave = { unlocked: [...BASE_GEAR], armor: null, weapon: DEFAULT_WEAPON };
   try {
     const raw = storage?.getItem(GEAR_KEY);
     const parsed: unknown = raw ? JSON.parse(raw) : null;
@@ -251,7 +251,13 @@ export function loadGear(storage: StorageLike | null = defaultStorage()): GearSa
     const rawArmor = saved.get('armor');
     const armor = typeof rawArmor === 'string' && isArmorId(rawArmor) ? rawArmor : null;
     const rawWeapon = saved.get('weapon');
-    const weapon = typeof rawWeapon === 'string' && isWeaponId(rawWeapon) ? rawWeapon : null;
+    const weapon = saved.has('weapon')
+      ? rawWeapon === null
+        ? null
+        : typeof rawWeapon === 'string' && isWeaponId(rawWeapon)
+          ? rawWeapon
+          : DEFAULT_WEAPON
+      : DEFAULT_WEAPON;
     return sanitizeGearSave({ unlocked: normalizeGearIds(unlockedRaw), armor, weapon });
   } catch {
     return empty;

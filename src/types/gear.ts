@@ -4,7 +4,7 @@
  */
 
 export type ArmorId = 'hard_hat' | 'knight_armor' | 'hazard_suit' | 'mech_suit';
-export type WeaponId = 'slingshot' | 'ray_blaster' | 'shock_cannon';
+export type WeaponId = 'pebble_popper' | 'slingshot' | 'ray_blaster' | 'shock_cannon';
 export type GearId = ArmorId | WeaponId;
 export type GearSlot = 'armor' | 'weapon';
 
@@ -92,6 +92,18 @@ export const ARMORS: Record<ArmorId, ArmorDef> = {
 };
 
 export const WEAPONS: Record<WeaponId, WeaponDef> = {
+  pebble_popper: {
+    id: 'pebble_popper',
+    slot: 'weapon',
+    label: 'Pebble Popper',
+    color: 0x10b981,
+    cost: 0,
+    damage: 1,
+    range: 14,
+    cooldown: 0.6,
+    splashRadius: 0,
+    description: 'Free starter popper that bats away falling hail, snowballs, and sparks!',
+  },
   slingshot: {
     id: 'slingshot',
     slot: 'weapon',
@@ -131,7 +143,14 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
 };
 
 export const ARMOR_ORDER: readonly ArmorId[] = ['hard_hat', 'knight_armor', 'hazard_suit', 'mech_suit'];
-export const WEAPON_ORDER: readonly WeaponId[] = ['slingshot', 'ray_blaster', 'shock_cannon'];
+export const WEAPON_ORDER: readonly WeaponId[] = [
+  'pebble_popper',
+  'slingshot',
+  'ray_blaster',
+  'shock_cannon',
+];
+export const BASE_GEAR: readonly GearId[] = ['pebble_popper'];
+export const DEFAULT_WEAPON: WeaponId = 'pebble_popper';
 
 export const GEAR: Record<GearId, GearDef> = {
   ...ARMORS,

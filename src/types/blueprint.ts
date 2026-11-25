@@ -327,8 +327,15 @@ export interface BlueprintGraph {
   struts: StrutData[];
 }
 
-export type BasePresetName = 'empty' | 'house' | 'tower';
-export type UnlockablePresetName = 'boat' | 'base' | 'laser_tower' | 'fortress';
+export type BasePresetName = 'empty' | 'house' | 'tower' | 'bridge';
+export type UnlockablePresetName =
+  | 'pyramid'
+  | 'boat'
+  | 'treehouse'
+  | 'base'
+  | 'laser_tower'
+  | 'dome'
+  | 'fortress';
 export type PresetName = BasePresetName | UnlockablePresetName;
 
 export interface PresetDef {
@@ -553,10 +560,127 @@ function fortressPreset(): BlueprintGraph {
   return { version: 1, blocks, struts };
 }
 
+/** Spanning stone & wood bridge with bamboo X-braced pillars and diagonal knee braces. */
+function bridgePreset(): BlueprintGraph {
+  const blocks: BlockData[] = [];
+  for (const x of [1, 6]) {
+    for (const z of [3, 4]) {
+      blocks.push(block(x, 0, z, 'stone'));
+      blocks.push(block(x, 1, z, 'stone'));
+    }
+  }
+  for (let x = 1; x <= 6; x++) {
+    for (const z of [3, 4]) {
+      blocks.push(block(x, 2, z, 'wood'));
+    }
+  }
+  const struts: StrutData[] = [
+    strut([1, 0, 3], [2, 2, 3], 'bamboo'),
+    strut([2, 0, 3], [1, 2, 3], 'bamboo'),
+    strut([1, 0, 5], [2, 2, 5], 'bamboo'),
+    strut([2, 0, 5], [1, 2, 5], 'bamboo'),
+    strut([6, 0, 3], [7, 2, 3], 'bamboo'),
+    strut([7, 0, 3], [6, 2, 3], 'bamboo'),
+    strut([6, 0, 5], [7, 2, 5], 'bamboo'),
+    strut([7, 0, 5], [6, 2, 5], 'bamboo'),
+    strut([2, 0, 3], [4, 2, 3], 'bamboo'),
+    strut([6, 0, 3], [4, 2, 3], 'bamboo'),
+    strut([2, 0, 5], [4, 2, 5], 'bamboo'),
+    strut([6, 0, 5], [4, 2, 5], 'bamboo'),
+  ];
+  return { version: 1, blocks, struts };
+}
+
+/** Stepped stone & wood pyramid with a walk-in door, bamboo spire, and wall braces. */
+function pyramidPreset(): BlueprintGraph {
+  const blocks: BlockData[] = [];
+  for (const x of [2, 3, 4, 5]) {
+    for (const z of [2, 3, 4, 5]) {
+      if (isBoxEdge(x, z)) {
+        blocks.push(block(x, 0, z, x === 3 && z === 5 ? 'door' : 'stone'));
+        blocks.push(block(x, 1, z, 'wood'));
+      }
+    }
+  }
+  for (const x of [3, 4]) {
+    for (const z of [3, 4]) {
+      blocks.push(block(x, 2, z, 'stone'));
+    }
+  }
+  blocks.push(block(3, 3, 3, 'bamboo'));
+  const struts: StrutData[] = [];
+  addOuterWallBraces(struts, 2, 6, 2, 6, 0, 2, 'bamboo');
+  return { version: 1, blocks, struts };
+}
+
+/** Elevated bamboo treehouse on shock-absorbing rubber & anchor corner stilts. */
+function treehousePreset(): BlueprintGraph {
+  const blocks: BlockData[] = [];
+  for (const [x, z] of [
+    [2, 2],
+    [5, 2],
+    [2, 5],
+    [5, 5],
+  ] as const) {
+    blocks.push(block(x, 0, z, 'anchor'));
+    blocks.push(block(x, 1, z, 'rubber'));
+  }
+  for (const x of [2, 3, 4, 5]) {
+    for (const z of [2, 3, 4, 5]) {
+      blocks.push(block(x, 2, z, 'wood'));
+      if (isBoxEdge(x, z)) {
+        blocks.push(block(x, 3, z, x === 3 && z === 5 ? 'door' : 'bamboo'));
+      }
+    }
+  }
+  for (const x of [3, 4]) {
+    for (const z of [3, 4]) {
+      blocks.push(block(x, 4, z, 'wood'));
+    }
+  }
+  const struts: StrutData[] = [];
+  addOuterWallBraces(struts, 2, 6, 2, 6, 0, 2, 'bamboo');
+  addOuterWallBraces(struts, 2, 6, 2, 6, 2, 4, 'bamboo');
+  return { version: 1, blocks, struts };
+}
+
+/** High-tech carbon & titanium bunker with a walk-in door, shield core, and twin lasers. */
+function domePreset(): BlueprintGraph {
+  const blocks: BlockData[] = [];
+  for (const x of [2, 3, 4, 5]) {
+    for (const z of [2, 3, 4, 5]) {
+      if (isBoxEdge(x, z)) {
+        const y0Mat: MaterialType = x === 3 && z === 5 ? 'door' : isBoxCorner(x, z) ? 'anchor' : 'titanium';
+        blocks.push(block(x, 0, z, y0Mat));
+        blocks.push(block(x, 1, z, 'carbon'));
+      }
+      blocks.push(block(x, 2, z, x === 3 && z === 3 ? 'shield' : 'carbon'));
+    }
+  }
+  blocks.push(
+    block(3, 3, 3, 'laser'),
+    block(4, 3, 4, 'laser'),
+    block(4, 3, 3, 'titanium'),
+    block(3, 3, 4, 'titanium'),
+  );
+  const struts: StrutData[] = [];
+  addOuterWallBraces(struts, 2, 6, 2, 6, 0, 2, 'carbon');
+  return { version: 1, blocks, struts };
+}
+
 export const PRESET_DEFS: Record<PresetName, PresetDef> = {
   empty: { id: 'empty', label: 'Empty', color: 0x94a3b8 },
   house: { id: 'house', label: 'House', color: 0xc58b4c },
   tower: { id: 'tower', label: 'Tower', color: 0xd97706 },
+  bridge: { id: 'bridge', label: 'Bridge', color: 0xb45309 },
+  pyramid: {
+    id: 'pyramid',
+    label: 'Pyramid',
+    color: 0xeab308,
+    cost: 120,
+    description: 'Stepped stone & wood pyramid with a secret walk-in door.',
+    badges: ['Stepped', 'Door'],
+  },
   boat: {
     id: 'boat',
     label: 'Boat',
@@ -564,6 +688,14 @@ export const PRESET_DEFS: Record<PresetName, PresetDef> = {
     cost: 150,
     description: 'Floating pontoon boat with a cabin door that rides right over floods.',
     badges: ['Floats', 'Door'],
+  },
+  treehouse: {
+    id: 'treehouse',
+    label: 'Treehouse',
+    color: 0x22c55e,
+    cost: 200,
+    description: 'Elevated bamboo treehouse on shock-absorbing rubber & anchor stilts.',
+    badges: ['Elevated', 'Braced'],
   },
   base: {
     id: 'base',
@@ -581,6 +713,14 @@ export const PRESET_DEFS: Record<PresetName, PresetDef> = {
     description: 'Braced 5-story defense spire with a shield core and 4 rooftop laser turrets.',
     badges: ['4 Lasers', 'Shield'],
   },
+  dome: {
+    id: 'dome',
+    label: 'Shield Dome',
+    color: 0x38bdf8,
+    cost: 500,
+    description: 'High-tech carbon & titanium bunker with a walk-in door, shield core, and twin lasers.',
+    badges: ['Walk-in Door', 'Shield', '2 Lasers'],
+  },
   fortress: {
     id: 'fortress',
     label: 'Fortress',
@@ -591,11 +731,14 @@ export const PRESET_DEFS: Record<PresetName, PresetDef> = {
   },
 };
 
-export const BASE_PRESETS: readonly BasePresetName[] = ['empty', 'house', 'tower'];
+export const BASE_PRESETS: readonly BasePresetName[] = ['empty', 'house', 'tower', 'bridge'];
 export const UNLOCKABLE_PRESETS: readonly UnlockablePresetName[] = [
+  'pyramid',
   'boat',
+  'treehouse',
   'base',
   'laser_tower',
+  'dome',
   'fortress',
 ];
 export const PRESET_ORDER: readonly PresetName[] = [...BASE_PRESETS, ...UNLOCKABLE_PRESETS];
@@ -609,9 +752,13 @@ export const PRESETS: Record<PresetName, () => BlueprintGraph> = {
   empty: emptyGraph,
   tower: towerPreset,
   house: housePreset,
+  bridge: bridgePreset,
+  pyramid: pyramidPreset,
   boat: boatPreset,
+  treehouse: treehousePreset,
   base: basePreset,
   laser_tower: laserTowerPreset,
+  dome: domePreset,
   fortress: fortressPreset,
 };
 

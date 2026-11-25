@@ -1,4 +1,17 @@
-import { Castle, Check, Crosshair, Lock, Shield, Ship, ShoppingBag, Sparkles, Zap } from 'lucide-react';
+import {
+  Castle,
+  Check,
+  Crosshair,
+  Globe,
+  Lock,
+  Shield,
+  Ship,
+  ShoppingBag,
+  Sparkles,
+  Trees,
+  Triangle,
+  Zap,
+} from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { useUIState } from '../state/store';
 import {
@@ -28,9 +41,12 @@ const SHOP_FILTERS: ReadonlyArray<{ id: ShopFilter; label: string }> = [
 ];
 
 const PRESET_ICONS: Record<UnlockablePresetName, ReactNode> = {
+  pyramid: <Triangle size={18} />,
   boat: <Ship size={18} />,
+  treehouse: <Trees size={18} />,
   base: <Shield size={18} />,
   laser_tower: <Zap size={18} />,
+  dome: <Globe size={18} />,
   fortress: <Castle size={18} />,
 };
 
@@ -101,7 +117,9 @@ function GearCard({
           </span>
           <div>
             <div className="text-base font-black">{gear.label}</div>
-            <div className="text-xs font-extrabold text-sky-700">{gear.cost} pts</div>
+            <div className="text-xs font-extrabold text-sky-700">
+              {gear.cost === 0 ? 'Free Starter' : `${gear.cost} pts`}
+            </div>
           </div>
         </div>
         {equipped ? (
