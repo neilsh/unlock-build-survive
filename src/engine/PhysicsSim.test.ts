@@ -12,7 +12,8 @@ import type {
   StrutData,
   Vec3,
 } from '../types/blueprint';
-import { DISASTER_SECONDS, PRESETS, blockId, cellToWorld, cornerToWorld, strutId } from '../types/blueprint';
+import { DISASTER_SECONDS, blockId, cellToWorld, cornerToWorld, strutId } from '../types/blueprint';
+import { PRESETS } from '../types/presets';
 import { WEAPONS } from '../types/gear';
 import type { MeshRegistry } from './BuildController';
 import { PieceHandle } from './InstancedPieces';

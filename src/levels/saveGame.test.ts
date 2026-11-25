@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PRESETS } from '../types/blueprint';
+import { PRESETS } from '../types/presets';
 import type { StorageLike } from './progress';
 import { SAVE_GAME_KEY, hasSavedGame, loadGameState, saveGameState, type SavedGame } from './saveGame';
 

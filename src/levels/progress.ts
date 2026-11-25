@@ -1,15 +1,7 @@
 /** Challenge-level progress: best stars per level, unlock rules, shop points and localStorage persistence. */
 import type { BuiltinMaterialType, MaterialType, PresetName, Stars } from '../types/blueprint';
-import {
-  BASE_MATERIALS,
-  BASE_PRESETS,
-  MATERIALS,
-  MATERIAL_ORDER,
-  PRESET_DEFS,
-  PRESET_ORDER,
-  isBuiltinMaterial,
-  isPresetName,
-} from '../types/blueprint';
+import { BASE_MATERIALS, MATERIALS, MATERIAL_ORDER, isBuiltinMaterial } from '../types/materials';
+import { BASE_PRESETS, PRESET_DEFS, PRESET_ORDER, isPresetName } from '../types/presets';
 import type { ArmorId, GearId, WeaponId } from '../types/gear';
 import { BASE_GEAR, DEFAULT_WEAPON, GEAR, GEAR_ORDER, isArmorId, isGearId, isWeaponId } from '../types/gear';
 import type { Level } from './levels';

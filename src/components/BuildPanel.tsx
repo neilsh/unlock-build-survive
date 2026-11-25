@@ -25,16 +25,9 @@ import { isMaterialAllowed } from '../levels/constraints';
 import { getLevel } from '../levels/levels';
 import { useMods } from '../mods/modStore';
 import { useUIState } from '../state/store';
-import {
-  BASE_MATERIALS,
-  MATERIALS,
-  PRESET_DEFS,
-  PRESET_ORDER,
-  UNLOCKABLE_MATERIALS,
-  type BuiltinMaterialType,
-  type PresetName,
-  type ToolType,
-} from '../types/blueprint';
+import { type BuiltinMaterialType, type PresetName, type ToolType } from '../types/blueprint';
+import { BASE_MATERIALS, MATERIALS, UNLOCKABLE_MATERIALS } from '../types/materials';
+import { PRESET_DEFS, PRESET_ORDER } from '../types/presets';
 import type { GameActions } from '../types/ui';
 import { Chip, Swatch } from './Chip';
 

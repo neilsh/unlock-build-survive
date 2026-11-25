@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
 import { BuildController } from './BuildController';
-import { AudioSynth, ProceduralAssets } from './ProceduralAssets';
+import { ProceduralAssets } from './ProceduralAssets';
+import { AudioSynth } from './AudioSynth';
 import type { SceneManager } from './SceneManager';
 import { ISLAND_SIZE, cornerToWorld, strutId } from '../types/blueprint';
 

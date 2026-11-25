@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useLevelInfo } from '../levels/levelStore';
 import { LEVELS, getLevel, type Level } from '../levels/levels';
 import { useUIState } from '../state/store';
-import { getMaterialDef } from '../types/blueprint';
+import { getMaterialDef } from '../types/materials';
 import type { GameActions } from '../types/ui';
 import { DISASTER_META } from './disasterMeta';
 import { Modal } from './Modal';

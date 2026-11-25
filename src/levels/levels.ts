@@ -11,7 +11,7 @@ import type {
   Stars,
   Strength,
 } from '../types/blueprint';
-import { PRESETS } from '../types/blueprint';
+import { PRESETS } from '../types/presets';
 
 export interface Level {
   id: string;

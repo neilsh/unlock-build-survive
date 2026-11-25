@@ -1,5 +1,7 @@
 import { useSyncExternalStore } from 'react';
-import { BASE_MATERIALS, BASE_PRESETS, DEFAULT_STRENGTH, DISASTER_SECONDS } from '../types/blueprint';
+import { DEFAULT_STRENGTH, DISASTER_SECONDS } from '../types/blueprint';
+import { BASE_MATERIALS } from '../types/materials';
+import { BASE_PRESETS } from '../types/presets';
 import { BASE_GEAR, DEFAULT_WEAPON } from '../types/gear';
 import type { UIState } from '../types/ui';
 

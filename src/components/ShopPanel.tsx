@@ -14,15 +14,9 @@ import {
 } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { useUIState } from '../state/store';
-import {
-  MATERIALS,
-  PRESET_DEFS,
-  UNLOCKABLE_MATERIALS,
-  UNLOCKABLE_PRESETS,
-  type BuiltinMaterialType,
-  type MaterialDef,
-  type UnlockablePresetName,
-} from '../types/blueprint';
+import { type BuiltinMaterialType, type UnlockablePresetName } from '../types/blueprint';
+import { MATERIALS, UNLOCKABLE_MATERIALS, type MaterialDef } from '../types/materials';
+import { PRESET_DEFS, UNLOCKABLE_PRESETS } from '../types/presets';
 import { GEAR, GEAR_ORDER, type GearDef, type GearId } from '../types/gear';
 import type { GameActions } from '../types/ui';
 import { intToHex } from '../utils/color';

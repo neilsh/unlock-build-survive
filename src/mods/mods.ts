@@ -2,7 +2,7 @@
  * Minecraft-style mod packs: data schema, built-in starter mods, sanitization,
  * persistence, resolution, and JSON export/import. Pure TypeScript (no three.js/Rapier/React).
  */
-import type { MaterialDef } from '../types/blueprint';
+import type { MaterialDef } from '../types/materials';
 import { DISASTER_SECONDS } from '../types/blueprint';
 import type { StorageLike } from '../levels/progress';
 

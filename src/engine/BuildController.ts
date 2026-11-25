@@ -17,7 +17,6 @@ import type {
   Vec3,
 } from '../types/blueprint';
 import {
-  PRESETS,
   blockId,
   cellCorners,
   cellInBounds,
@@ -28,16 +27,18 @@ import {
   GRID_CELLS,
   ISLAND_SIZE,
   CELL_SIZE,
-  isBuiltinMaterial,
   isStrutValid,
   key,
   mirrorCellX,
   mirrorCornerX,
   strutId,
 } from '../types/blueprint';
+import { PRESETS } from '../types/presets';
+import { isBuiltinMaterial } from '../types/materials';
 import { canAddBlock, isMaterialAllowed } from '../levels/constraints';
 import { InstancedPieces, PieceHandle } from './InstancedPieces';
-import type { AudioSynth, ProceduralAssets } from './ProceduralAssets';
+import type { ProceduralAssets } from './ProceduralAssets';
+import type { AudioSynth } from './AudioSynth';
 import type { SceneManager } from './SceneManager';
 
 /**

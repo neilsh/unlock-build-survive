@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
-import { AudioSynth, ProceduralAssets } from './ProceduralAssets';
-import { MATERIALS, MATERIAL_ORDER } from '../types/blueprint';
+import { ProceduralAssets } from './ProceduralAssets';
+import { AudioSynth } from './AudioSynth';
+import { MATERIALS, MATERIAL_ORDER } from '../types/materials';
 
 describe('ProceduralAssets (headless)', () => {
   it('builds a shared rounded block that fits the 2-unit grid with a small gap', () => {

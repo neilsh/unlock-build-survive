@@ -46,13 +46,13 @@ import * as THREE from 'three';
 import type {
   BlueprintGraph,
   DisasterType,
-  MaterialDef,
   ProjectileKind,
   Strength,
   StrutData,
   Telemetry,
   Vec3,
 } from '../types/blueprint';
+import type { MaterialDef } from '../types/materials';
 import {
   CELL_SIZE,
   DEFAULT_STRENGTH,
@@ -61,9 +61,9 @@ import {
   blocksAtCorner,
   cellToWorld,
   cornerToWorld,
-  getMaterialDef,
   key,
 } from '../types/blueprint';
+import { getMaterialDef } from '../types/materials';
 import type { ModDisasterDef } from '../mods/mods';
 import type { WeaponDef } from '../types/gear';
 import { mulberry32 } from '../utils/rng';

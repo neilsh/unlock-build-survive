@@ -35,12 +35,11 @@ import {
   DEFAULT_STRENGTH,
   DISASTER_ORDER,
   DISASTER_SECONDS,
-  MATERIAL_ORDER,
   cellToWorld,
   emptyGraph,
   isBuiltinDisaster,
-  isBuiltinMaterial,
 } from '../types/blueprint';
+import { MATERIAL_ORDER, isBuiltinMaterial } from '../types/materials';
 import { uiStore } from '../state/store';
 import { modStore } from '../mods/modStore';
 import { loadMods, parseImportedMod, saveMods, type GameMod } from '../mods/mods';
@@ -72,7 +71,8 @@ import { COMPANION_WEAPON, CompanionManager, type CompanionInput } from './Compa
 import { FirstPersonController } from './FirstPersonController';
 import { GamepadManager } from './GamepadManager';
 import { PHYSICS_TUNING, PhysicsSim, type SimOptions } from './PhysicsSim';
-import { AudioSynth, ProceduralAssets } from './ProceduralAssets';
+import { ProceduralAssets } from './ProceduralAssets';
+import { AudioSynth } from './AudioSynth';
 import { SceneManager } from './SceneManager';
 
 /** Flood plane level when no flood is running (hidden below -1). */

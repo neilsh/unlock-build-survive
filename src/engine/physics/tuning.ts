@@ -1,14 +1,7 @@
 import * as THREE from 'three';
 import type { ModDisasterDef } from '../../mods/mods';
-import type {
-  DisasterType,
-  MaterialDef,
-  ProjectileKind,
-  Stars,
-  Strength,
-  Telemetry,
-  Vec3,
-} from '../../types/blueprint';
+import type { DisasterType, ProjectileKind, Stars, Strength, Telemetry, Vec3 } from '../../types/blueprint';
+import type { MaterialDef } from '../../types/materials';
 import { DISASTER_SECONDS } from '../../types/blueprint';
 import type { PieceHandle } from '../InstancedPieces';
 

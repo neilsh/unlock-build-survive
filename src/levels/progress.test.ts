@@ -1,12 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import {
-  BASE_MATERIALS,
-  BASE_PRESETS,
-  MATERIALS,
-  PRESET_DEFS,
-  UNLOCKABLE_MATERIALS,
-  UNLOCKABLE_PRESETS,
-} from '../types/blueprint';
+import { BASE_MATERIALS, MATERIALS, UNLOCKABLE_MATERIALS } from '../types/materials';
+import { BASE_PRESETS, PRESET_DEFS, UNLOCKABLE_PRESETS } from '../types/presets';
 import { BASE_GEAR, DEFAULT_WEAPON, GEAR, GEAR_ORDER } from '../types/gear';
 import { LEVELS } from './levels';
 import {

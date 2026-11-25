@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   GRID_CELLS,
-  PRESETS,
   blockId,
   blocksAtCorner,
   cellCorners,
@@ -15,6 +14,7 @@ import {
   mirrorCornerX,
   strutId,
 } from './blueprint';
+import { PRESETS } from './presets';
 
 describe('blueprint helpers', () => {
   it('builds deterministic ids independent of strut endpoint order', () => {
