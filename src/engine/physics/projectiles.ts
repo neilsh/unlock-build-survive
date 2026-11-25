@@ -16,8 +16,11 @@ export interface Projectile {
 }
 
 function createEmojiBallTexture(emoji: string, bgHex: string): THREE.CanvasTexture | null {
-  if (typeof document === 'undefined') return null;
-  const canvas = document.createElement('canvas');
+  // Canvas emoji textures are browser-only; headless physics (Node) falls back to a flat colour.
+  // oxlint-disable-next-line no-restricted-globals
+  const doc = typeof document === 'undefined' ? null : document;
+  if (!doc) return null;
+  const canvas = doc.createElement('canvas');
   canvas.width = 256;
   canvas.height = 128;
   const ctx = canvas.getContext('2d');
