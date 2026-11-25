@@ -13,7 +13,20 @@ const COPY: Record<Stars, { title: string; hint: string }> = {
 
 /** Centred result banner with 0-3 stars and Survival wave transitions. */
 export function Banners({ actions }: { actions: GameActions }) {
-  const s = useUIState();
+  const s = useUIState((u) => ({
+    firstBrokenId: u.firstBrokenId,
+    levelId: u.levelId,
+    mode: u.mode,
+    playMode: u.playMode,
+    standingHistory: u.standingHistory,
+    standingRatio: u.standingRatio,
+    stars: u.stars,
+    survivalBestWave: u.survivalBestWave,
+    survivalFailReason: u.survivalFailReason,
+    survivalLastReward: u.survivalLastReward,
+    survivalOver: u.survivalOver,
+    survivalWave: u.survivalWave,
+  }));
   const isSurvival = s.playMode === 'survival' && s.levelId === null;
 
   if (isSurvival && s.survivalOver) {

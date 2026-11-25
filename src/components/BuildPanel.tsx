@@ -56,7 +56,18 @@ const SECTION_LABEL = 'text-[11px] font-black uppercase tracking-wide text-sky-8
 
 /** Build tools, materials, mirror/undo/clear and starter presets. Reads the UI store only. */
 export function BuildPanel({ actions }: { actions: GameActions }) {
-  const s = useUIState();
+  const s = useUIState((u) => ({
+    canUndo: u.canUndo,
+    exploreMode: u.exploreMode,
+    hasStarted: u.hasStarted,
+    levelId: u.levelId,
+    material: u.material,
+    mirrorX: u.mirrorX,
+    playMode: u.playMode,
+    tool: u.tool,
+    unlockedMaterials: u.unlockedMaterials,
+    unlockedPresets: u.unlockedPresets,
+  }));
   const { active } = useMods();
   // A challenge level greys out materials it does not allow and the presets (they would skip its limits).
   const level = s.levelId ? getLevel(s.levelId) : undefined;

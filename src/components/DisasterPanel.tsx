@@ -12,7 +12,17 @@ const GROUP_LABEL = 'text-[11px] font-black uppercase tracking-wide text-sky-800
 
 /** Disaster picker, the Test/Rewind button and the countdown. */
 export function DisasterPanel({ actions }: { actions: GameActions }) {
-  const s = useUIState();
+  const s = useUIState((u) => ({
+    disaster: u.disaster,
+    levelId: u.levelId,
+    megaStorm: u.megaStorm,
+    mode: u.mode,
+    playMode: u.playMode,
+    strength: u.strength,
+    survivalOver: u.survivalOver,
+    survivalWave: u.survivalWave,
+    timeRemaining: u.timeRemaining,
+  }));
   const { active } = useMods();
   const building = s.mode === 'build';
   const isSurvival = s.playMode === 'survival' && s.levelId === null;

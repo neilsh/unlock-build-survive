@@ -5,7 +5,7 @@ import { Chip } from './Chip';
 
 /** Sound mute toggle and gamepad connection badge, stacked on the right edge. */
 export function CameraPanel({ actions }: { actions: GameActions }) {
-  const s = useUIState();
+  const s = useUIState((u) => ({ gamepadConnected: u.gamepadConnected, muted: u.muted }));
   return (
     <section aria-label="Camera and sound" className="pointer-events-none flex flex-col items-center gap-1.5">
       <span className="rounded-full bg-white/85 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wide text-sky-900 shadow-sm">
