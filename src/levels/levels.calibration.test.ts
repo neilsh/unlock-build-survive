@@ -124,7 +124,7 @@ const CASES: Record<string, { good: BoxSpec; naive?: BoxSpec }> = {
     good: { size: [3, 2, 3], materials: ['stone', 'wood', 'wood'] },
     naive: { size: [2, 2, 4], materials: ['stone', 'wood', 'wood'] },
   },
-  'critter-haven': {
+  'unlock-build-survive': {
     good: { size: [2, 2, 4], materials: HOUSE, braced: true },
     naive: { size: [1, 1, 4], materials: HOUSE },
   },

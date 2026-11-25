@@ -1,4 +1,4 @@
-# AGENTS.md — Disaster Village (`critter-haven`)
+# AGENTS.md — Disaster Village (`unlock-build-survive`)
 
 ## 1. Audience & Mode
 
