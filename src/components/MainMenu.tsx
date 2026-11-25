@@ -3,6 +3,7 @@ import {
   CloudLightning,
   Columns2,
   Compass,
+  DoorOpen,
   FolderOpen,
   Hammer,
   Map as MapIcon,
@@ -18,7 +19,7 @@ import {
   Users,
   Zap,
 } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useUIState } from '../state/store';
 import { MenuBackdrop } from './MenuBackdrop';
 import type { AddonId, GameActions, MultiplayerMode } from '../types/ui';
@@ -107,6 +108,7 @@ interface MainMenuProps {
 /** Full-screen mode selection & pause menu over the live 3D island. */
 export function MainMenu({ actions, onOpenChallenges, onOpenShop }: MainMenuProps) {
   const s = useUIState();
+  const [confirmingExit, setConfirmingExit] = useState(false);
   if (!s.menuOpen) return null;
 
   return (
@@ -155,6 +157,17 @@ export function MainMenu({ actions, onOpenChallenges, onOpenShop }: MainMenuProp
             {s.hasStarted && (
               <button
                 type="button"
+                data-testid="menu-exit"
+                onClick={() => setConfirmingExit(true)}
+                className="inline-flex min-h-12 items-center gap-2 rounded-2xl bg-rose-100 px-5 py-2.5 text-sm font-black text-rose-900 shadow-md transition hover:bg-rose-200 active:scale-95"
+              >
+                <DoorOpen size={18} aria-hidden="true" />
+                Exit to Menu
+              </button>
+            )}
+            {s.hasStarted && (
+              <button
+                type="button"
                 data-testid="menu-resume"
                 onClick={() => actions.resumeGame()}
                 className="inline-flex min-h-12 items-center gap-2 rounded-2xl bg-amber-300 px-5 py-2.5 text-sm font-black text-amber-950 shadow-md transition hover:bg-amber-200 active:scale-95"
@@ -165,6 +178,40 @@ export function MainMenu({ actions, onOpenChallenges, onOpenShop }: MainMenuProp
             )}
           </div>
         </div>
+
+        {s.hasStarted && confirmingExit && (
+          <div
+            role="alertdialog"
+            aria-label="Exit to menu?"
+            data-testid="exit-confirm"
+            className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-rose-100 p-3 ring-2 ring-rose-400"
+          >
+            <p className="text-sm font-black text-rose-950">
+              Leave this game? Anything you haven&apos;t saved will be lost (your last save stays safe).
+            </p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                data-testid="exit-cancel"
+                onClick={() => setConfirmingExit(false)}
+                className="min-h-10 rounded-xl bg-white px-4 py-2 text-sm font-black text-sky-950 shadow-sm active:scale-95"
+              >
+                Keep Playing
+              </button>
+              <button
+                type="button"
+                data-testid="exit-confirm-yes"
+                onClick={() => {
+                  setConfirmingExit(false);
+                  actions.exitToMenu();
+                }}
+                className="min-h-10 rounded-xl bg-rose-500 px-4 py-2 text-sm font-black text-white shadow-sm active:scale-95"
+              >
+                Exit without saving
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="flex flex-col gap-1.5">
           <span className="text-xs font-black uppercase tracking-wide text-sky-800">Add-Ons</span>

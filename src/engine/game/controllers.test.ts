@@ -236,6 +236,26 @@ describe('SessionController', () => {
     expect(uiStore.getState().battleTurn).toBe(2);
   });
 
+  it('exitToMenu resets a split-screen game to a clean menu without saving', () => {
+    const { deps, s } = make();
+    s.setMultiplayerMode('split');
+    s.startPlayMode('survival');
+    uiStore.setState({ moonGravity: true, hasSave: true, survivalWave: 4 });
+    s.exitToMenu();
+    expect(uiStore.getState()).toMatchObject({
+      menuOpen: true,
+      hasStarted: false,
+      hasSave: true, // the earlier saved game is untouched
+      playMode: 'creative',
+      multiplayerMode: 'solo',
+      moonGravity: false,
+      survivalWave: 1,
+    });
+    expect(deps.companion.setMode).toHaveBeenLastCalledWith('solo');
+    expect(deps.build.loadGraph).toHaveBeenCalled();
+    expect(deps.syncInputPaused).toHaveBeenCalled();
+  });
+
   it('openMenu pauses input', () => {
     const { deps, s } = make();
     s.openMenu();

@@ -183,3 +183,32 @@ test.describe('split-screen co-op', () => {
     expect(errors, errors.join('\n')).toEqual([]);
   });
 });
+
+test.describe('exit to menu', () => {
+  test('confirms, then returns to a fresh main menu and keeps the saved game', async ({ page }) => {
+    await openGame(page);
+    await page.getByTestId('menu-creative').click();
+    await page.evaluate(() => window.__GAME_DEBUG__!.placeBlock(0, 0, 0, 'wood'));
+    expect((await telemetry(page)).blockCount).toBe(1);
+    await page.getByTestId('menu-open').click();
+    await page.getByTestId('menu-save').click();
+    await page.getByTestId('menu-resume').click();
+    await page.evaluate(() => window.__GAME_DEBUG__!.placeBlock(2, 0, 0, 'wood'));
+
+    await page.getByTestId('menu-open').click();
+    await page.getByTestId('menu-exit').click();
+    await expect(page.getByTestId('exit-confirm')).toBeVisible();
+    await page.getByTestId('exit-cancel').click();
+    await expect(page.getByTestId('exit-confirm')).toBeHidden();
+    expect((await telemetry(page)).blockCount).toBe(2);
+
+    await page.getByTestId('menu-exit').click();
+    await page.getByTestId('exit-confirm-yes').click();
+    await expect(page.getByTestId('menu-resume')).toBeHidden();
+    await expect(page.getByTestId('menu-exit')).toBeHidden();
+    expect((await telemetry(page)).blockCount).toBe(0);
+
+    await page.getByTestId('menu-continue').click(); // the earlier save is still there
+    expect((await telemetry(page)).blockCount).toBe(1);
+  });
+});

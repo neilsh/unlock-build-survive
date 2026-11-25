@@ -9,7 +9,7 @@ import { getSurvivalWave } from '../../levels/survival';
 import { modStore } from '../../mods/modStore';
 import { parseImportedMod, saveMods, type GameMod } from '../../mods/mods';
 import { uiStore } from '../../state/store';
-import { emptyGraph, isBuiltinDisaster, type Vec3 } from '../../types/blueprint';
+import { DEFAULT_STRENGTH, emptyGraph, isBuiltinDisaster, type Vec3 } from '../../types/blueprint';
 import { isBuiltinMaterial } from '../../types/materials';
 import {
   isTwoPlayerCoop,
@@ -200,6 +200,52 @@ export class SessionController {
     levelStore.setState({ notice: 'Game saved!' });
     this.d.audio.resume();
     this.d.audio.playUnlock();
+  };
+
+  /**
+   * Abandons the current game and returns to the main menu with a clean slate. Never writes a save, so
+   * the previously saved game (and `hasSave`) is left exactly as it was. Persistent progression
+   * (stars, points, unlocks, mods, audio) is not session state and is kept.
+   */
+  exitToMenu: GameActions['exitToMenu'] = () => {
+    this.d.ensureBuildMode(); // rewinds any running or finished disaster
+    this.d.build.setConstraints(null);
+    this.d.build.loadGraph(emptyGraph());
+    this.d.progression.resetSurvivalRewards();
+    this.d.companion.setMode('solo');
+    this.d.firstPerson.setArrowKeysEnabled(true);
+    const s0 = uiStore.getState();
+    uiStore.setState({
+      playMode: 'creative',
+      exploreMode: false,
+      moonGravity: false,
+      turboMode: false,
+      megaStorm: false,
+      multiplayerMode: 'solo',
+      battleTurn: 1,
+      battleRound: 1,
+      battleP1Score: 0,
+      battleP2Score: 0,
+      battleP1Done: false,
+      battleP2Done: false,
+      survivalWave: 1,
+      survivalOver: false,
+      survivalFailReason: null,
+      survivalLastReward: 0,
+      levelId: null,
+      disaster: 'earthquake',
+      strength: DEFAULT_STRENGTH,
+      playerHp: s0.playerMaxHp,
+      p2Hp: s0.p2MaxHp,
+      p2Tool: 'block',
+      p2Material: 'stone',
+      menuOpen: true,
+      hasStarted: false,
+    });
+    levelStore.setState({ notice: null, justUnlocked: null });
+    this.d.firstPerson.spawn(this.d.currentBlockCenters());
+    this.d.syncBuildEnabled();
+    this.d.syncInputPaused();
   };
 
   continueGame: GameActions['continueGame'] = () => {

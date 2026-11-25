@@ -128,6 +128,8 @@ export interface GameActions {
   openMenu(): void;
   resumeGame(): void;
   saveGame(): void;
+  /** Leaves the current game for the main menu, discarding unsaved progress (the saved game is untouched). */
+  exitToMenu(): void;
   continueGame(): void;
   startPlayMode(mode: PlayMode): void;
   setExploreMode(on: boolean): void;

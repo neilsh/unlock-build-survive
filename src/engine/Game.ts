@@ -464,6 +464,7 @@ export class Game implements GameActions, GameDebugApi {
   openMenu: GameActions['openMenu'] = () => this.session.openMenu();
   resumeGame: GameActions['resumeGame'] = () => this.session.resumeGame();
   saveGame: GameActions['saveGame'] = () => this.session.saveGame();
+  exitToMenu: GameActions['exitToMenu'] = () => this.session.exitToMenu();
   continueGame: GameActions['continueGame'] = () => this.session.continueGame();
   setExploreMode: GameActions['setExploreMode'] = (on) => this.session.setExploreMode(on);
   setAddon: GameActions['setAddon'] = (addon, on) => this.session.setAddon(addon, on);
