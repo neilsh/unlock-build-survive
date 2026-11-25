@@ -68,6 +68,8 @@ export interface UIState {
   /** Id of the first piece that broke in the current run, for the HUD and highlight. */
   firstBrokenId: string | null;
   muted: boolean;
+  /** Background music volume, 0..1. */
+  musicVolume: number;
   canUndo: boolean;
   azimuth: Azimuth;
   firstPerson: boolean;
@@ -109,6 +111,7 @@ export interface GameActions {
   setCameraAzimuth(deg: Azimuth): void;
   setFirstPerson(on: boolean): void;
   setMuted(muted: boolean): void;
+  setMusicVolume(volume: number): void;
   setModalOpen(open: boolean): void;
   openMenu(): void;
   resumeGame(): void;

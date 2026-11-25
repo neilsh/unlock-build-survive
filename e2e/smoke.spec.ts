@@ -126,3 +126,19 @@ test.describe('towers and houses', () => {
     await page.screenshot({ path: 'test-results/house-survived.png' });
   });
 });
+
+test.describe('music settings', () => {
+  test('music volume slider is saved and restored after a reload', async ({ page }) => {
+    await openGame(page);
+    await page.getByTestId('menu-creative').click();
+    const slider = page.getByTestId('music-volume');
+    await slider.fill('25');
+    await expect(slider).toHaveValue('25');
+    await page.getByTestId('mute-toggle').click();
+    await page.reload();
+    await page.waitForFunction(() => Boolean(window.__GAME_DEBUG__), null, { timeout: 30_000 });
+    await page.getByTestId('menu-creative').click();
+    await expect(page.getByTestId('music-volume')).toHaveValue('25');
+    await expect(page.getByTestId('mute-toggle')).toHaveAttribute('aria-pressed', 'true');
+  });
+});

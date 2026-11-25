@@ -38,6 +38,7 @@ import { GamepadManager } from './GamepadManager';
 import { PHYSICS_TUNING, PhysicsSim, type SimOptions } from './PhysicsSim';
 import { ProceduralAssets } from './ProceduralAssets';
 import { AudioSynth } from './AudioSynth';
+import { loadAudioSettings, saveAudioSettings } from '../state/audioSettings';
 import { SceneManager } from './SceneManager';
 import { CombatController } from './game/CombatController';
 import { InputRouter } from './game/InputRouter';
@@ -168,6 +169,7 @@ export class Game implements GameActions, GameDebugApi {
     });
 
     this.progression.hydrate();
+    this.initAudio();
     uiStore.setState({
       playMode: 'creative',
       menuOpen: true,
@@ -214,6 +216,43 @@ export class Game implements GameActions, GameDebugApi {
       }),
     );
     this.cleanups.push(this.input.attachWindowListeners());
+  }
+
+  /** Restores saved sound settings, picks the music theme, and starts audio on the first user gesture. */
+  private initAudio() {
+    const saved = loadAudioSettings();
+    this.audio.setMuted(saved.muted);
+    this.audio.setMusicVolume(saved.musicVolume);
+    uiStore.setState({ muted: saved.muted, musicVolume: saved.musicVolume });
+
+    let menuOpen = uiStore.getState().menuOpen;
+    this.audio.setMusicTheme(menuOpen ? 'menu' : 'game');
+    const unsubscribe = uiStore.subscribe(() => {
+      const next = uiStore.getState().menuOpen;
+      if (next === menuOpen) return;
+      menuOpen = next;
+      this.audio.setMusicTheme(next ? 'menu' : 'game');
+    });
+
+    // Browsers block audio until a user gesture, so the music starts on the first one.
+    const gestures = ['pointerdown', 'keydown', 'touchstart'] as const;
+    const onGesture = () => {
+      this.audio.resume();
+      for (const type of gestures) window.removeEventListener(type, onGesture, true);
+    };
+    for (const type of gestures) window.addEventListener(type, onGesture, true);
+    const onVisibility = () => this.audio.setSuspended(document.hidden);
+    document.addEventListener('visibilitychange', onVisibility);
+
+    this.cleanups.push(unsubscribe, () => {
+      for (const type of gestures) window.removeEventListener(type, onGesture, true);
+      document.removeEventListener('visibilitychange', onVisibility);
+    });
+  }
+
+  private saveAudio() {
+    const { muted, musicVolume } = uiStore.getState();
+    saveAudioSettings({ muted, musicVolume });
   }
 
   private syncBuildEnabled() {
@@ -502,9 +541,17 @@ export class Game implements GameActions, GameDebugApi {
   setMuted: GameActions['setMuted'] = (muted) => {
     this.audio.setMuted(muted);
     uiStore.setState({ muted });
+    this.saveAudio();
+  };
+  setMusicVolume: GameActions['setMusicVolume'] = (volume) => {
+    const musicVolume = Math.min(1, Math.max(0, volume));
+    this.audio.setMusicVolume(musicVolume);
+    uiStore.setState({ musicVolume });
+    this.saveAudio();
   };
   setModalOpen: GameActions['setModalOpen'] = (open) => {
     this.openModals = Math.max(0, this.openModals + (open ? 1 : -1));
+    this.audio.setMusicDucked(this.openModals > 0);
     this.syncInputPaused();
   };
 

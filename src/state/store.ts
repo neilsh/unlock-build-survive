@@ -2,6 +2,7 @@ import { DEFAULT_STRENGTH, DISASTER_SECONDS } from '../types/blueprint';
 import { BASE_MATERIALS } from '../types/materials';
 import { BASE_PRESETS } from '../types/presets';
 import { BASE_GEAR, DEFAULT_WEAPON } from '../types/gear';
+import { DEFAULT_AUDIO_SETTINGS } from './audioSettings';
 import type { UIState } from '../types/ui';
 import { createStore, useStoreSelector } from './createStore';
 
@@ -47,6 +48,7 @@ export const uiStore = createStore<UIState>({
   equippedWeapon: DEFAULT_WEAPON,
   firstBrokenId: null,
   muted: false,
+  musicVolume: DEFAULT_AUDIO_SETTINGS.musicVolume,
   canUndo: false,
   azimuth: 0,
   firstPerson: true,

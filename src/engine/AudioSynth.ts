@@ -1,3 +1,6 @@
+import { MusicPlayer } from './music/MusicPlayer';
+import type { ThemeName } from './music/score';
+
 /** Web Audio synthesizer. No external files: every sound is generated procedurally. */
 const MASTER_VOLUME = 0.6;
 /** One-shot sounds closer together than this are dropped, so a cascade of snaps stays a crackle. */
@@ -14,6 +17,12 @@ export class AudioSynth {
   private noise: AudioBuffer | null = null;
   private wind: { source: AudioBufferSourceNode; filter: BiquadFilterNode; gain: GainNode } | null = null;
   private lastOneShot = new Map<string, number>();
+  private music: MusicPlayer | null = null;
+  private musicTheme: ThemeName = 'menu';
+  private musicVolume = 0.6;
+  private musicDucked = false;
+  /** Set by the first user gesture; music only starts once browsers allow audio. */
+  private musicWanted = false;
   private rumble: {
     source: AudioBufferSourceNode;
     osc: OscillatorNode;
@@ -24,7 +33,41 @@ export class AudioSynth {
   /** Call from a user gesture; browsers keep the AudioContext suspended until then. */
   resume(): void {
     const ctx = this.getContext();
-    if (ctx && ctx.state === 'suspended') void ctx.resume().catch(() => undefined);
+    this.musicWanted = true;
+    if (!ctx) return;
+    if (ctx.state === 'suspended') {
+      void ctx
+        .resume()
+        .then(() => this.music?.start())
+        .catch(() => undefined);
+    } else {
+      this.music?.start();
+    }
+  }
+
+  /** Music volume 0..1; independent of the sound effects, and still silenced by `setMuted`. */
+  setMusicVolume(volume: number): void {
+    this.musicVolume = Math.min(1, Math.max(0, volume));
+    this.music?.setVolume(this.musicVolume);
+  }
+
+  setMusicTheme(theme: ThemeName): void {
+    this.musicTheme = theme;
+    this.music?.setTheme(theme);
+  }
+
+  /** Quiets the music while a dialog is open. */
+  setMusicDucked(ducked: boolean): void {
+    this.musicDucked = ducked;
+    this.music?.setDucked(ducked);
+  }
+
+  /** Suspends all audio (e.g. a hidden tab) or brings it back. Only acts once audio has started. */
+  setSuspended(suspended: boolean): void {
+    const ctx = this.ctx;
+    if (!ctx || !this.musicWanted) return;
+    if (suspended && ctx.state === 'running') void ctx.suspend().catch(() => undefined);
+    else if (!suspended && ctx.state === 'suspended') void ctx.resume().catch(() => undefined);
   }
 
   setMuted(muted: boolean): void {
@@ -148,6 +191,8 @@ export class AudioSynth {
   }
 
   dispose(): void {
+    this.music?.dispose();
+    this.music = null;
     for (const node of [this.wind, this.rumble]) {
       if (!node) continue;
       try {
@@ -185,6 +230,10 @@ export class AudioSynth {
     master.connect(ctx.destination);
     this.ctx = ctx;
     this.master = master;
+    this.music = new MusicPlayer(ctx, master);
+    this.music.setTheme(this.musicTheme);
+    this.music.setVolume(this.musicVolume);
+    this.music.setDucked(this.musicDucked);
     return ctx;
   }
 
