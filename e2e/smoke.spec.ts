@@ -127,6 +127,42 @@ test.describe('towers and houses', () => {
   });
 });
 
+test.describe('animal helper blocks', () => {
+  test('beaver, owl and spider blocks are in the build menu and run through a disaster', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', (err) => errors.push(`pageerror: ${err.message}`));
+    page.on('console', (msg) => {
+      if (msg.type() === 'error' && !IGNORED_CONSOLE.some((re) => re.test(msg.text()))) {
+        errors.push(`console.error: ${msg.text()}`);
+      }
+    });
+    await openGame(page);
+    await page.getByTestId('menu-creative').click(); // Creative unlocks every block
+    for (const m of ['beaver', 'owl', 'spider']) {
+      await expect(page.getByTestId(`material-${m}`)).toBeEnabled();
+    }
+    await page.getByTestId('material-beaver').click();
+
+    const placed = await page.evaluate(() => {
+      const g = window.__GAME_DEBUG__!;
+      return [
+        g.placeBlock(3, 0, 3, 'stone'),
+        g.placeBlock(3, 1, 3, 'owl'),
+        g.placeBlock(4, 0, 3, 'beaver'),
+        g.placeBlock(2, 0, 3, 'spider'),
+      ];
+    });
+    expect(placed).toEqual([true, true, true, true]);
+
+    await page.evaluate(() => window.__GAME_DEBUG__!.startDisaster('flood', 1));
+    const end = await page.evaluate(() => window.__GAME_DEBUG__!.advance(60));
+    expect(end.mode).toBe('survived');
+    await page.evaluate(() => window.__GAME_DEBUG__!.rewind());
+    expect((await telemetry(page)).mode).toBe('build');
+    expect(errors, errors.join('\n')).toEqual([]);
+  });
+});
+
 test.describe('music settings', () => {
   test('music volume slider is saved and restored after a reload', async ({ page }) => {
     await openGame(page);

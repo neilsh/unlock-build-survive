@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { ModDisasterDef } from '../../mods/mods';
 import type { DisasterType, ProjectileKind, Stars, Strength, Telemetry, Vec3 } from '../../types/blueprint';
-import type { MaterialDef } from '../../types/materials';
+import type { HelperKind, MaterialDef } from '../../types/materials';
 import { DISASTER_SECONDS } from '../../types/blueprint';
 import type { PieceHandle } from '../InstancedPieces';
 
@@ -37,6 +37,8 @@ export interface PhysicsEvents {
   onProjectileImpact?(kind: ProjectileKind, x: number, y: number, z: number): void;
   /** For visuals & audio: a Laser block vaporized a projectile in flight. */
   onLaserFire?(from: Vec3, to: Vec3): void;
+  /** For visuals & audio: an animal-helper block did its thing (`target` is where it swatted, if any). */
+  onHelperAction?(id: string, kind: HelperKind, at: Vec3, target: Vec3 | null): void;
 }
 
 /**
@@ -93,6 +95,16 @@ export const PHYSICS_TUNING = {
   meteor: { perSecond: 3.0, radiusMin: 0.6, radiusMax: 0.85, density: 3.4, speed: 18.5, height: 18 },
   shield: { radius: 5.5, stressMultiplier: 3.0, stiffnessMultiplier: 1.8 },
   laser: { range: 11, cooldown: 1.2 },
+  /** Animal-helper blocks. Each kind is capped so extreme builds stay smooth. */
+  helpers: {
+    maxPerKind: 12,
+    /** Beaver dam: flood current pushes on blocks within `radius` are scaled by `currentMultiplier`. */
+    beaver: { radius: 5, currentMultiplier: 0.4, splashEvery: 1.4 },
+    /** Owl: swats the closest airborne hazard within `range`, then rests for `cooldown`. */
+    owl: { range: 7, cooldown: 1.5 },
+    /** Spider webs: links within `radius` tolerate `stressMultiplier` times more stretch. */
+    spider: { radius: 4, stressMultiplier: 1.6, pulseEvery: 1, pulseStrain: 0.5 },
+  },
   /** Disaster force multiplier per strength level (medium is the calibrated baseline). */
   strength: { gentle: 0.6, medium: 1, strong: 1.5 } satisfies Record<Strength, number>,
   /** A piece whose centre drifts further than this (world units, relative to the island) has fallen. */

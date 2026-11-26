@@ -1,5 +1,9 @@
 import type { BuiltinMaterialType, MaterialType } from './blueprint';
 
+/** Animal-helper blocks: each one spawns a critter that helps against disasters. */
+export type HelperKind = 'beaver' | 'owl' | 'spider';
+export const HELPER_KINDS: readonly HelperKind[] = ['beaver', 'owl', 'spider'];
+
 export interface MaterialDef {
   id: MaterialType;
   label: string;
@@ -25,7 +29,7 @@ export interface MaterialDef {
   /** Multiplier applied to foundation anchor break limits for ground blocks. */
   anchorMultiplier?: number;
   /** Active defense behaviour during a disaster. */
-  special?: 'shield' | 'laser';
+  special?: 'shield' | 'laser' | HelperKind;
   /** Players can walk into this block and climb it in First-Person. */
   climbable?: boolean;
 }
@@ -193,6 +197,45 @@ export const MATERIALS: Record<BuiltinMaterialType, MaterialDef> = {
     shopCategory: 'defense',
     description: 'Nearly unbreakable crystal core that also projects a protective shield.',
   },
+  beaver: {
+    id: 'beaver',
+    label: 'Beaver',
+    color: 0xb5651d,
+    density: 0.65,
+    stiffness: 1.1,
+    maxStress: 1.2,
+    buoyancy: 1.8,
+    special: 'beaver',
+    cost: 225,
+    shopCategory: 'defense',
+    description: 'A busy beaver builds a dam that slows flood currents pushing on nearby blocks.',
+  },
+  spider: {
+    id: 'spider',
+    label: 'Spider',
+    color: 0x4e6b2f,
+    density: 0.5,
+    stiffness: 1.2,
+    maxStress: 1.3,
+    buoyancy: 0.8,
+    special: 'spider',
+    cost: 275,
+    shopCategory: 'defense',
+    description: 'A friendly spider spins sticky webs that make nearby joints much harder to break.',
+  },
+  owl: {
+    id: 'owl',
+    label: 'Owl',
+    color: 0xa1887f,
+    density: 0.5,
+    stiffness: 1.2,
+    maxStress: 1.2,
+    buoyancy: 1.0,
+    special: 'owl',
+    cost: 400,
+    shopCategory: 'defense',
+    description: 'A wise owl spots falling hazards and swats them out of the sky.',
+  },
   door: {
     id: 'door',
     label: 'Door',
@@ -219,9 +262,12 @@ export const UNLOCKABLE_MATERIALS: BuiltinMaterialType[] = [
   'rubber',
   'anchor',
   'pontoon',
+  'beaver',
   'steel',
+  'spider',
   'carbon',
   'shield',
+  'owl',
   'titanium',
   'laser',
   'magnet',

@@ -172,6 +172,21 @@ export class AudioSynth {
     this.tone('sine', 2100, 620, 0.07, 0.12);
   }
 
+  /** Little critter sounds: beaver tail slap, owl hoot, spider tick. */
+  playHelper(kind: 'beaver' | 'owl' | 'spider'): void {
+    if (!this.allowOneShot(`helper-${kind}`)) return;
+    if (kind === 'beaver') {
+      this.noiseHit('lowpass', 500, 1, 0.1, 0.5);
+      this.tone('sine', 160, 70, 0.12, 0.25);
+    } else if (kind === 'owl') {
+      this.tone('sine', 420, 380, 0.16, 0.2);
+      this.tone('sine', 340, 300, 0.2, 0.2, 0.18);
+    } else {
+      this.tone('square', 1800, 1500, 0.04, 0.08);
+      this.tone('square', 2100, 1700, 0.04, 0.08, 0.07);
+    }
+  }
+
   playUnlock(): void {
     if (!this.allowOneShot('unlock')) return;
     const notes = [587.33, 783.99, 1046.5];

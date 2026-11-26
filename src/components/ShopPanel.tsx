@@ -56,6 +56,9 @@ function materialBadges(def: MaterialDef): string[] {
   if (def.anchorMultiplier && def.anchorMultiplier > 1) badges.push(`${def.anchorMultiplier}x Grip`);
   if (def.special === 'shield') badges.push('Shield Aura');
   if (def.special === 'laser') badges.push('Laser Turret');
+  if (def.special === 'beaver') badges.push('Flood Dam');
+  if (def.special === 'owl') badges.push('Hazard Swatter');
+  if (def.special === 'spider') badges.push('Web Bracing');
   return badges;
 }
 

@@ -34,6 +34,9 @@ const ROUGHNESS: Record<BuiltinMaterialType, number> = {
   laser: 0.3,
   magnet: 0.35,
   diamond: 0.15,
+  beaver: 0.8,
+  owl: 0.9,
+  spider: 0.8,
 };
 const TEXTURE_SEEDS: Record<BuiltinMaterialType, number> = {
   wood: 11,
@@ -52,6 +55,9 @@ const TEXTURE_SEEDS: Record<BuiltinMaterialType, number> = {
   laser: 127,
   magnet: 211,
   diamond: 233,
+  beaver: 277,
+  owl: 281,
+  spider: 283,
 };
 
 type Painter = (g: CanvasRenderingContext2D, rnd: () => number, base: string) => void;
@@ -403,6 +409,107 @@ const PAINTERS: Record<BuiltinMaterialType, Painter> = {
       g.arc(sx, sy, 6, 0, Math.PI * 2);
       g.fill();
     }
+  },
+  beaver(g, rnd, base) {
+    const S = TEXTURE_SIZE;
+    g.fillStyle = base;
+    g.fillRect(0, 0, S, S);
+    // Stacked gnawed logs with pale end rings.
+    const rows = 4;
+    for (let i = 0; i < rows; i++) {
+      const y = (i / rows) * S;
+      g.fillStyle = i % 2 === 0 ? 'rgba(62,39,35,0.28)' : 'rgba(255,224,178,0.12)';
+      g.fillRect(0, y, S, S / rows - 4);
+      g.strokeStyle = 'rgba(62,39,35,0.5)';
+      g.lineWidth = 3;
+      g.beginPath();
+      g.moveTo(0, y + S / rows - 2);
+      g.lineTo(S, y + S / rows - 2);
+      g.stroke();
+      for (let k = 0; k < 6; k++) {
+        g.fillStyle = 'rgba(40,20,5,0.3)';
+        g.fillRect(rnd() * S, y + 6 + rnd() * (S / rows - 18), 3, 10);
+      }
+    }
+    // Two big buck teeth in the middle.
+    g.fillStyle = '#fff8e1';
+    g.fillRect(S / 2 - 26, S / 2 - 30, 24, 60);
+    g.fillRect(S / 2 + 2, S / 2 - 30, 24, 60);
+    g.strokeStyle = '#6d4c41';
+    g.lineWidth = 4;
+    g.strokeRect(S / 2 - 26, S / 2 - 30, 24, 60);
+    g.strokeRect(S / 2 + 2, S / 2 - 30, 24, 60);
+  },
+  owl(g, _rnd, base) {
+    const S = TEXTURE_SIZE;
+    g.fillStyle = base;
+    g.fillRect(0, 0, S, S);
+    // Rows of feather scallops.
+    g.strokeStyle = 'rgba(62,39,35,0.35)';
+    g.lineWidth = 3;
+    for (let y = 18; y < S + 24; y += 26) {
+      for (let x = (y / 26) % 2 === 0 ? 0 : 16; x < S + 32; x += 32) {
+        g.beginPath();
+        g.arc(x, y, 16, 0, Math.PI);
+        g.stroke();
+      }
+    }
+    // Big round amber eyes.
+    for (const ex of [S * 0.3, S * 0.7]) {
+      g.fillStyle = '#fffde7';
+      g.beginPath();
+      g.arc(ex, S * 0.42, 34, 0, Math.PI * 2);
+      g.fill();
+      g.fillStyle = '#ffb300';
+      g.beginPath();
+      g.arc(ex, S * 0.42, 22, 0, Math.PI * 2);
+      g.fill();
+      g.fillStyle = '#1b1b1b';
+      g.beginPath();
+      g.arc(ex, S * 0.42, 10, 0, Math.PI * 2);
+      g.fill();
+    }
+    g.fillStyle = '#ff9800';
+    g.beginPath();
+    g.moveTo(S / 2 - 14, S * 0.58);
+    g.lineTo(S / 2 + 14, S * 0.58);
+    g.lineTo(S / 2, S * 0.74);
+    g.closePath();
+    g.fill();
+  },
+  spider(g, _rnd, base) {
+    const S = TEXTURE_SIZE;
+    g.fillStyle = base;
+    g.fillRect(0, 0, S, S);
+    g.fillStyle = 'rgba(20,30,10,0.3)';
+    g.fillRect(14, 14, S - 28, S - 28);
+    // A white spider web: spokes plus rings.
+    g.strokeStyle = 'rgba(255,255,255,0.85)';
+    g.lineWidth = 3;
+    const cx = S / 2;
+    const cy = S / 2;
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      g.beginPath();
+      g.moveTo(cx, cy);
+      g.lineTo(cx + Math.cos(a) * 118, cy + Math.sin(a) * 118);
+      g.stroke();
+    }
+    for (const r of [30, 60, 90, 118]) {
+      g.beginPath();
+      for (let i = 0; i <= 8; i++) {
+        const a = (i / 8) * Math.PI * 2;
+        const x = cx + Math.cos(a) * r;
+        const y = cy + Math.sin(a) * r;
+        if (i === 0) g.moveTo(x, y);
+        else g.lineTo(x, y);
+      }
+      g.stroke();
+    }
+    g.fillStyle = '#e53935';
+    g.beginPath();
+    g.arc(cx, cy, 11, 0, Math.PI * 2);
+    g.fill();
   },
   door(g, _rnd, base) {
     const S = TEXTURE_SIZE;

@@ -6,7 +6,7 @@ import type { MaterialDef } from '../../types/materials';
 import type { Projectile } from './projectiles';
 import type { Rapier } from './rapier';
 import type { PhysicsEvents } from './tuning';
-import type { BlockRec, LaserEntry, Link, ShieldDome, StrutRec } from './types';
+import type { BlockRec, HelperEntry, LaserEntry, Link, ShieldDome, StrutRec } from './types';
 
 /**
  * Shared mutable state of one disaster run. `SimRun` implements it and the stateless functions in
@@ -23,6 +23,7 @@ export interface SimContext {
   readonly shieldBlocks: BlockRec[];
   readonly shieldDomes: ShieldDome[];
   readonly lasers: LaserEntry[];
+  readonly helpers: HelperEntry[];
   projectiles: Projectile[];
   readonly projectileGeom: THREE.SphereGeometry;
   readonly projectileMats: Record<ProjectileKind, THREE.MeshStandardMaterial>;

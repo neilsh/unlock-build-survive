@@ -58,6 +58,7 @@ import type { WeaponDef } from '../types/gear';
 import { mulberry32 } from '../utils/rng';
 import type { MeshRegistry } from './BuildController';
 import { checkPlayerDamage, firePlayerWeapon, updateLasers } from './physics/combat';
+import { helperPoses, updateHelpers } from './physics/helpers';
 import type { SimContext } from './physics/context';
 import { applyDisaster, disasterIntensity } from './physics/disasters';
 import { createProjectileMaterials, type Projectile } from './physics/projectiles';
@@ -74,11 +75,19 @@ import {
   type SimOptions,
   type WeaponFireResult,
 } from './physics/tuning';
-import type { BlockRec, LaserEntry, Link, ShieldDome, StrutRec } from './physics/types';
+import type {
+  BlockRec,
+  HelperEntry,
+  HelperPose,
+  LaserEntry,
+  Link,
+  ShieldDome,
+  StrutRec,
+} from './physics/types';
 import { addBlocks, addStrut } from './physics/worldBuilder';
 
 export { PHYSICS_TUNING, loadRapier, starsFor };
-export type { PhysicsEvents, PlayerHitResult, PlayerProtection, SimOptions, WeaponFireResult };
+export type { HelperPose, PhysicsEvents, PlayerHitResult, PlayerProtection, SimOptions, WeaponFireResult };
 export const makeRng = mulberry32;
 
 const T = PHYSICS_TUNING;
@@ -172,6 +181,11 @@ export class PhysicsSim {
     return this.run?.blockPositions(excludeIds) ?? [];
   }
 
+  /** Live poses of animal-helper blocks, or null when there is no run (draw them at their cells). */
+  getHelperPoses(): HelperPose[] | null {
+    return this.run ? helperPoses(this.run) : null;
+  }
+
   /** Live world centers of active disaster projectiles. */
   getProjectilePositions(): Vec3[] {
     return this.run?.projectilePositions() ?? [];
@@ -223,6 +237,7 @@ class SimRun implements SimContext {
   readonly shieldBlocks: BlockRec[] = [];
   readonly shieldDomes: ShieldDome[] = [];
   readonly lasers: LaserEntry[] = [];
+  readonly helpers: HelperEntry[] = [];
   projectiles: Projectile[] = [];
   readonly projectileGeom = new THREE.SphereGeometry(1, 16, 12);
   readonly projectileMats: Record<ProjectileKind, THREE.MeshStandardMaterial>;
@@ -383,6 +398,7 @@ class SimRun implements SimContext {
     this.time += T.step;
     applyDisaster(this);
     updateLasers(this);
+    updateHelpers(this);
     this.world.step();
     measureAndBreak(this);
     updateStanding(this);

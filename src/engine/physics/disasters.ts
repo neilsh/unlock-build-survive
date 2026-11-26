@@ -2,6 +2,7 @@ import type { ModDisasterDef } from '../../mods/mods';
 import { CELL_SIZE } from '../../types/blueprint';
 import { spawnProjectile, spawnTargetedProjectile, updateProjectiles } from './combat';
 import type { SimContext } from './context';
+import { beaverShelter } from './helpers';
 import { PHYSICS_TUNING, clamp01, envelope, smooth } from './tuning';
 import type { BlockRec } from './types';
 
@@ -107,7 +108,8 @@ export function applyFlood(ctx: SimContext, reset = true) {
     const v = b.body.linvel();
     const drag = f.drag * sub * b.mass;
     // The current pushes upstream faces regardless of material, so heavy blocks resist it better.
-    const push = f.current * ctx.power * env * sub * upstreamExposure(b, cx, cz);
+    const push =
+      f.current * ctx.power * env * sub * upstreamExposure(b, cx, cz) * beaverShelter(ctx, p.x, p.z);
     b.body.addForce(
       {
         x: cx * push - v.x * drag,

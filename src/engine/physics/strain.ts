@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { CELL_SIZE } from '../../types/blueprint';
 import { getMaterialDef } from '../../types/materials';
 import type { SimContext } from './context';
+import { helperPositions } from './helpers';
 import { PHYSICS_TUNING, tint } from './tuning';
 import type { BlockRec, Link, StrutRec } from './types';
 
@@ -72,12 +73,17 @@ export function measureAndBreak(ctx: SimContext) {
     if (!s.fallen) activeShieldPos.push(s.body.translation());
   }
   const r2 = T.shield.radius * T.shield.radius;
+  const webPos = helperPositions(ctx, 'spider');
+  const webR2 = T.helpers.spider.radius * T.helpers.spider.radius;
   for (const l of ctx.links) {
     if (l.broken) continue;
-    const limit =
+    let limit =
       activeShieldPos.length > 0 && isProtectedByShield(l, activeShieldPos, r2)
         ? l.limit * T.shield.stressMultiplier
         : l.limit;
+    if (webPos.length > 0 && isProtectedByShield(l, webPos, webR2)) {
+      limit *= T.helpers.spider.stressMultiplier;
+    }
     l.strain = linkStretch(l) / limit;
     if (l.strain > ctx.peakStrain) {
       ctx.peakStrain = l.strain;

@@ -6,6 +6,7 @@ import { getMaterialDef } from '../../types/materials';
 import type { MeshRegistry } from '../BuildController';
 import type { SimContext } from './context';
 import { configureAxisSpring, isLinear } from './rapier';
+import { registerHelper } from './helpers';
 import { PHYSICS_TUNING } from './tuning';
 import type { BlockRec, StrutEnd, StrutRec } from './types';
 
@@ -54,6 +55,8 @@ export function addBlocks(ctx: SimContext, graph: BlueprintGraph, meshes: MeshRe
       }
     } else if (mat.special === 'laser') {
       ctx.lasers.push({ rec, cooldown: 0 });
+    } else if (mat.special === 'beaver' || mat.special === 'owl' || mat.special === 'spider') {
+      registerHelper(ctx, rec, mat.special);
     }
   }
 

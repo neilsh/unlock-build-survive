@@ -28,7 +28,10 @@ export type BuiltinMaterialType =
   | 'titanium'
   | 'laser'
   | 'magnet'
-  | 'diamond';
+  | 'diamond'
+  | 'beaver'
+  | 'owl'
+  | 'spider';
 export type MaterialType = BuiltinMaterialType | (string & {});
 
 export type BuiltinDisasterType =

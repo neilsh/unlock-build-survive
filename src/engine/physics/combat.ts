@@ -159,7 +159,7 @@ export function firePlayerWeapon(
  * Applies `damage` to a projectile. Returns true when it was destroyed (mesh and body removed; the
  * caller compacts the list); otherwise the projectile shrinks and slows down.
  */
-function damageProjectile(ctx: SimContext, proj: Projectile, damage: number): boolean {
+export function damageProjectile(ctx: SimContext, proj: Projectile, damage: number): boolean {
   proj.hp -= damage;
   if (proj.hp <= 0) {
     proj.destroyed = true;

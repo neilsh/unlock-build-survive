@@ -38,6 +38,7 @@ import { P2Controller } from './game/P2Controller';
 import { PlayerBody } from './PlayerBody';
 import { GamepadManager } from './GamepadManager';
 import { MenuNavigator } from './MenuNavigator';
+import { HelperAnimals } from './HelperAnimals';
 import { PHYSICS_TUNING, PhysicsSim, type SimOptions } from './PhysicsSim';
 import { ProceduralAssets } from './ProceduralAssets';
 import { AudioSynth } from './AudioSynth';
@@ -67,6 +68,7 @@ export class Game implements GameActions, GameDebugApi {
   readonly companion: CompanionManager;
   readonly firstPerson: FirstPersonController;
   private readonly playerBody: PlayerBody;
+  private readonly helpers: HelperAnimals;
   readonly gamepad = new GamepadManager();
   readonly physics = new PhysicsSim();
 
@@ -88,6 +90,7 @@ export class Game implements GameActions, GameDebugApi {
     this.companion = new CompanionManager(this.scene.scene);
     this.firstPerson = new FirstPersonController(this.scene.camera, this.scene.domElement);
     this.playerBody = new PlayerBody(this.scene.scene);
+    this.helpers = new HelperAnimals(this.scene.scene);
 
     this.progression = new ProgressionController({
       audio: this.audio,
@@ -182,6 +185,10 @@ export class Game implements GameActions, GameDebugApi {
         this.scene.laserBeam(from, to);
         this.audio.playLaserZap();
       },
+      onHelperAction: (id, kind, _at, target) => {
+        this.helpers.react(id, target);
+        this.audio.playHelper(kind);
+      },
     });
 
     this.progression.hydrate();
@@ -234,6 +241,7 @@ export class Game implements GameActions, GameDebugApi {
       }),
       this.build.subscribe(() => {
         const g = this.build.getGraph();
+        this.helpers.sync(g.blocks);
         uiStore.setState({ canUndo: this.build.canUndo() });
         levelStore.setState({ blocksUsed: g.blocks.length, height: buildHeight(g) });
       }),
@@ -346,6 +354,7 @@ export class Game implements GameActions, GameDebugApi {
     this.scene.setSplitScreen(uiStore.getState().multiplayerMode === 'split');
     if (dt > 0) this.input.handleGamepad(dt);
     if (this.physics.isRunning()) this.physics.update(dt);
+    this.helpers.update(dt, this.physics.getHelperPoses());
     if (uiStore.getState().firstPerson) {
       const sNow = uiStore.getState();
       const baseGravity =
@@ -699,6 +708,7 @@ export class Game implements GameActions, GameDebugApi {
     this.gamepad.dispose();
     this.companion.dispose();
     this.playerBody.dispose();
+    this.helpers.dispose();
     this.firstPerson.dispose();
     this.build.dispose();
     this.scene.dispose();

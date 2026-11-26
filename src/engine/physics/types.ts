@@ -1,6 +1,7 @@
 import type { ImpulseJoint, RigidBody } from '@dimforge/rapier3d-compat';
 import type * as THREE from 'three';
-import type { BlockData, StrutData } from '../../types/blueprint';
+import type { BlockData, StrutData, Vec3 } from '../../types/blueprint';
+import type { HelperKind } from '../../types/materials';
 import type { PieceHandle } from '../InstancedPieces';
 
 export interface BlockRec {
@@ -65,6 +66,20 @@ export interface Link {
 export interface LaserEntry {
   rec: BlockRec;
   cooldown: number;
+}
+
+export interface HelperEntry {
+  kind: HelperKind;
+  rec: BlockRec;
+  cooldown: number;
+}
+
+/** Live pose of an animal-helper block, for drawing its critter on top. */
+export interface HelperPose {
+  id: string;
+  kind: HelperKind;
+  pos: Vec3;
+  fallen: boolean;
 }
 
 export interface ShieldDome {
