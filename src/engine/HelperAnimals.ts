@@ -25,6 +25,10 @@ export interface HelperAnimalPose {
 
 /** Parts animated per kind: tail (beaver), wings (owl), legs and web ring (spider). */
 interface AnimalParts {
+  /** Eyeballs scaled flat for a blink (each carries its open height in userData.baseY). */
+  eyes?: THREE.Object3D[];
+  /** Ears that twitch now and then. */
+  ears?: THREE.Object3D[];
   tail?: THREE.Object3D;
   wings?: THREE.Object3D[];
   legs?: THREE.Object3D[];
@@ -67,6 +71,12 @@ export class HelperAnimals {
   private readonly matPupil = this.mat(0x111111);
   private readonly matSpider = this.mat(0x263238);
   private readonly matSpiderMark = this.mat(0xe53935);
+  private readonly matPink = this.mat(0xf4a6a6);
+  private readonly matWhite = this.mat(0xffffff);
+  private readonly matClaw = this.mat(0x4b3b32);
+  private readonly matWhisker = this.mat(0xf5f0e6);
+  private readonly matBellyOwl = this.mat(0xf3e9d2);
+  private readonly matSpiderBand = this.mat(0x546e7a);
   private readonly matWeb = new THREE.MeshBasicMaterial({
     color: 0xffffff,
     transparent: true,
@@ -74,6 +84,7 @@ export class HelperAnimals {
     depthWrite: false,
     side: THREE.DoubleSide,
   });
+  private readonly whisker = this.geo(new THREE.CylinderGeometry(0.006, 0.004, 1, 4));
   private readonly webGeom = this.geo(new THREE.RingGeometry(0.4, 1, 8, 1));
 
   constructor(parent: THREE.Object3D) {
@@ -162,7 +173,17 @@ export class HelperAnimals {
     const r = a.react / REACT_SECONDS; // 1 -> 0 over the reaction
     const idle = Math.sin(a.phase * 2.4 + a.id.length);
     a.group.position.y += Math.abs(idle) * 0.04;
-    const { tail, wings, legs, web } = a.parts;
+    const { tail, wings, legs, web, eyes, ears } = a.parts;
+    if (eyes) {
+      const blink = (a.phase * 0.28 + (hash(a.id) % 10) / 10) % 1 > 0.955 ? 0.12 : 1;
+      for (const e of eyes) e.scale.y = Number(e.userData.baseY) * blink;
+    }
+    if (ears) {
+      const twitch = Math.max(0, Math.sin(a.phase * 1.3 + a.id.length)) ** 12;
+      ears.forEach((ear, i) => {
+        ear.rotation.z = (i === 0 ? 1 : -1) * twitch * 0.5;
+      });
+    }
     if (tail) {
       // Tail slap: the flat tail swings down hard and pops back up.
       tail.rotation.x = -0.35 + Math.sin(a.phase * 2) * 0.05 + (r > 0 ? Math.sin(r * Math.PI * 3) * 0.7 : 0);
@@ -231,32 +252,96 @@ export class HelperAnimals {
     return m;
   }
 
+  /** An eyeball with a white glint, registered for blinking. */
+  private eye(g: THREE.Object3D, pos: Vec3, size: number, mat: THREE.Material, eyes: THREE.Object3D[]): void {
+    const ball = this.part(g, this.sphere, mat, pos, [size, size, size * 0.6]);
+    ball.userData.baseY = size;
+    this.part(ball, this.sphere, this.matWhite, [0.3, 0.35, 0.8], [0.3, 0.3, 0.3]);
+    eyes.push(ball);
+  }
+
+  private whiskers(g: THREE.Object3D, at: Vec3, len: number): void {
+    for (const side of [-1, 1]) {
+      for (let i = 0; i < 3; i++) {
+        const w = this.part(
+          g,
+          this.whisker,
+          this.matWhisker,
+          [at[0] + side * len * 0.5, at[1] + (i - 1) * 0.03, at[2]],
+          [1, len, 1],
+        );
+        w.castShadow = false;
+        w.rotation.z = side * (Math.PI / 2 + (i - 1) * 0.25);
+      }
+    }
+  }
+
   private buildBeaver(g: THREE.Group): AnimalParts {
+    const eyes: THREE.Object3D[] = [];
+    const ears: THREE.Object3D[] = [];
+    // Plump body, cream belly, round head with muzzle, ears, glinting eyes, buck teeth and whiskers.
     this.part(g, this.sphere, this.matFur, [0, 0.42, 0], [0.5, 0.42, 0.62]);
     this.part(g, this.sphere, this.matBelly, [0, 0.36, 0.12], [0.4, 0.34, 0.5]);
     this.part(g, this.sphere, this.matFur, [0, 0.78, 0.38], [0.34, 0.3, 0.32]);
+    this.part(g, this.sphere, this.matBelly, [0, 0.7, 0.56], [0.2, 0.15, 0.16]);
     for (const x of [-0.2, 0.2]) {
-      this.part(g, this.sphere, this.matTail, [x, 1.04, 0.3], [0.09, 0.09, 0.07]);
-      this.part(g, this.sphere, this.matPupil, [x * 0.7, 0.85, 0.64], [0.05, 0.05, 0.05]);
+      ears.push(this.part(g, this.sphere, this.matTail, [x, 1.04, 0.3], [0.09, 0.09, 0.07]));
+      this.part(g, this.sphere, this.matPink, [x, 1.04, 0.34], [0.05, 0.05, 0.03]);
+      this.eye(g, [x * 0.7, 0.86, 0.62], 0.055, this.matPupil, eyes);
     }
-    this.part(g, this.sphere, this.matTail, [0, 0.74, 0.68], [0.1, 0.08, 0.08]);
-    for (const x of [-0.05, 0.05]) this.part(g, this.box, this.matTooth, [x, 0.62, 0.66], [0.07, 0.14, 0.04]);
+    this.part(g, this.sphere, this.matTail, [0, 0.76, 0.7], [0.1, 0.08, 0.08]);
+    for (const x of [-0.05, 0.05]) this.part(g, this.box, this.matTooth, [x, 0.62, 0.68], [0.07, 0.15, 0.04]);
+    this.whiskers(g, [0, 0.7, 0.62], 0.2);
+    // Front paws with claws, and big hind feet.
+    for (const x of [-0.16, 0.16]) {
+      this.part(g, this.sphere, this.matTail, [x, 0.12, 0.42], [0.09, 0.07, 0.12]);
+      this.part(g, this.sphere, this.matTail, [x * 1.5, 0.1, -0.15], [0.11, 0.07, 0.17]);
+      for (const c of [-0.03, 0.03]) {
+        this.part(g, this.box, this.matClaw, [x + c, 0.1, 0.54], [0.015, 0.025, 0.04]);
+      }
+    }
+    // Flat paddle tail with a crosshatch of scale ridges.
     const tailPivot = new THREE.Group();
     tailPivot.position.set(0, 0.2, -0.5);
     g.add(tailPivot);
     this.part(tailPivot, this.box, this.matTail, [0, 0, -0.38], [0.5, 0.08, 0.8]);
-    return { tail: tailPivot };
+    for (let i = 0; i < 6; i++) {
+      this.part(tailPivot, this.box, this.matFur, [0, 0.045, -0.12 - i * 0.12], [0.46, 0.012, 0.025]);
+    }
+    for (const x of [-0.12, 0, 0.12]) {
+      this.part(tailPivot, this.box, this.matFur, [x, 0.046, -0.38], [0.02, 0.012, 0.7]);
+    }
+    return { tail: tailPivot, eyes, ears };
   }
 
   private buildOwl(g: THREE.Group): AnimalParts {
+    const eyes: THREE.Object3D[] = [];
+    const ears: THREE.Object3D[] = [];
     this.part(g, this.sphere, this.matFeather, [0, 0.55, 0], [0.42, 0.55, 0.4]);
     this.part(g, this.sphere, this.matOwlFace, [0, 0.48, 0.12], [0.3, 0.38, 0.3]);
+    // Rows of pale feather scallops across the chest.
+    for (let row = 0; row < 3; row++) {
+      for (let i = -1; i <= 1; i++) {
+        const x = i * 0.11 + (row % 2 ? 0.055 : 0);
+        if (Math.abs(x) > 0.15) continue;
+        this.part(
+          g,
+          this.sphere,
+          this.matBellyOwl,
+          [x, 0.4 - row * 0.1, 0.34 - row * 0.015],
+          [0.065, 0.05, 0.03],
+        );
+      }
+    }
     for (const x of [-0.17, 0.17]) {
       this.part(g, this.sphere, this.matOwlFace, [x, 0.8, 0.28], [0.17, 0.17, 0.08]);
       this.part(g, this.sphere, this.matEye, [x, 0.8, 0.33], [0.11, 0.11, 0.05]);
-      this.part(g, this.sphere, this.matPupil, [x, 0.8, 0.37], [0.05, 0.05, 0.03]);
+      this.eye(g, [x, 0.8, 0.37], 0.05, this.matPupil, eyes);
+      const brow = this.part(g, this.box, this.matFeather, [x * 1.1, 0.94, 0.32], [0.17, 0.035, 0.05]);
+      brow.rotation.z = x > 0 ? 0.35 : -0.35;
       const tuft = this.part(g, this.cone, this.matFeather, [x * 1.3, 1.12, 0.05], [0.1, 0.25, 0.1]);
       tuft.rotation.z = x > 0 ? -0.3 : 0.3;
+      ears.push(tuft);
     }
     const beak = this.part(g, this.cone, this.matBeak, [0, 0.7, 0.4], [0.07, 0.16, 0.07]);
     beak.rotation.x = Math.PI / 2;
@@ -266,19 +351,54 @@ export class HelperAnimals {
       pivot.position.set(side * 0.38, 0.62, 0);
       g.add(pivot);
       this.part(pivot, this.sphere, this.matFeather, [side * 0.12, -0.12, 0], [0.12, 0.38, 0.28]);
+      // Layered flight feathers fanning from the wing.
+      for (let i = 0; i < 3; i++) {
+        const f = this.part(
+          pivot,
+          this.sphere,
+          this.matTail,
+          [side * (0.16 + i * 0.02), -0.3 - i * 0.04, -0.06 + i * 0.07],
+          [0.06, 0.2, 0.05],
+        );
+        f.rotation.z = side * 0.12;
+      }
       wings.push(pivot);
     }
-    for (const x of [-0.12, 0.12]) this.part(g, this.box, this.matBeak, [x, 0.04, 0.12], [0.1, 0.08, 0.18]);
-    return { wings };
+    // Feet with three talons each, and a fluffy tail fan behind.
+    for (const x of [-0.12, 0.12]) {
+      this.part(g, this.box, this.matBeak, [x, 0.04, 0.12], [0.1, 0.08, 0.18]);
+      for (const c of [-0.035, 0, 0.035]) {
+        this.part(g, this.cone, this.matClaw, [x + c, 0.03, 0.24], [0.015, 0.06, 0.015]).rotation.x =
+          Math.PI / 2;
+      }
+    }
+    const tail = this.part(g, this.sphere, this.matTail, [0, 0.2, -0.36], [0.2, 0.06, 0.2]);
+    tail.rotation.x = -0.4;
+    return { wings, eyes, ears };
   }
 
   private buildSpider(g: THREE.Group): AnimalParts {
+    const eyes: THREE.Object3D[] = [];
+    // Striped abdomen with the red hourglass, a head with eight eyes and two fangs.
     this.part(g, this.sphere, this.matSpider, [0, 0.38, -0.22], [0.36, 0.3, 0.42]);
+    for (let i = 0; i < 3; i++) {
+      this.part(
+        g,
+        this.sphere,
+        this.matSpiderBand,
+        [0, 0.38 + i * 0.015, -0.1 - i * 0.14],
+        [0.37 - i * 0.04, 0.31, 0.03],
+      );
+    }
     this.part(g, this.sphere, this.matSpiderMark, [0, 0.55, -0.3], [0.1, 0.03, 0.14]);
     this.part(g, this.sphere, this.matSpider, [0, 0.38, 0.22], [0.24, 0.22, 0.24]);
     for (const x of [-0.09, 0.09]) {
       this.part(g, this.sphere, this.matTooth, [x, 0.46, 0.4], [0.07, 0.07, 0.05]);
-      this.part(g, this.sphere, this.matPupil, [x, 0.46, 0.44], [0.03, 0.03, 0.02]);
+      this.eye(g, [x, 0.46, 0.44], 0.03, this.matPupil, eyes);
+      this.part(g, this.sphere, this.matTooth, [x * 1.55, 0.5, 0.36], [0.03, 0.03, 0.025]);
+      this.part(g, this.sphere, this.matTooth, [x * 0.6, 0.53, 0.38], [0.025, 0.025, 0.02]);
+      const fang = this.part(g, this.cone, this.matTooth, [x * 0.55, 0.33, 0.45], [0.025, 0.09, 0.025]);
+      fang.rotation.x = Math.PI;
     }
     const legs: THREE.Object3D[] = [];
     for (const side of [-1, 1]) {
@@ -303,6 +423,9 @@ export class HelperAnimals {
           [0.025, 0.3, 0.025],
         );
         lower.rotation.z = side * 0.25;
+        // Knee joint ball and a pale foot tip.
+        this.part(pivot, this.sphere, this.matSpiderBand, [side * 0.4, 0.04, 0], [0.04, 0.04, 0.04]);
+        this.part(pivot, this.sphere, this.matTooth, [side * 0.5, -0.28, 0], [0.025, 0.025, 0.025]);
         legs.push(pivot);
       }
     }
@@ -312,7 +435,7 @@ export class HelperAnimals {
     web.position.y = 0.05;
     web.visible = false;
     g.add(web);
-    return { legs, web };
+    return { legs, web, eyes };
   }
 
   private geo<T extends THREE.BufferGeometry>(g: T): T {

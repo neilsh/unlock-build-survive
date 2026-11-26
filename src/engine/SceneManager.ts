@@ -11,6 +11,7 @@ import { getIslandSize } from '../types/blueprint';
 import { QUALITY_PROFILES, type GraphicsQuality, type QualityProfile } from '../types/settings';
 import { mulberry32 } from '../utils/rng';
 import { DisasterEffects, type CustomDisasterFx } from './Effects';
+import { buildIslandScenery, dirtTexture, grassTexture } from './IslandScenery';
 
 // Low enough that the bottom HUD bar does not cover the island's front edge.
 const TARGET = new THREE.Vector3(0, 1.5, 0);
@@ -24,27 +25,24 @@ const WATER_HIDDEN_BELOW = -1;
 
 const easeInOut = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 
-function grassTexture(): THREE.CanvasTexture {
-  const size = 256;
-  const c = document.createElement('canvas');
-  c.width = c.height = size;
-  const g = c.getContext('2d');
-  if (!g) throw new Error('2D canvas context unavailable');
-  g.fillStyle = '#7ed957';
-  g.fillRect(0, 0, size, size);
-  const r = mulberry32(7);
-  for (let i = 0; i < 1400; i++) {
-    const light = r() > 0.5;
-    g.fillStyle = light ? 'rgba(190,255,120,0.35)' : 'rgba(60,150,60,0.3)';
-    g.fillRect(r() * size, r() * size, 2 + r() * 3, 2 + r() * 3);
+/** Roughens a cone's rings with seeded noise so the underside looks like lumpy earth, not a funnel. */
+function jitterCone(geo: THREE.ConeGeometry): THREE.ConeGeometry {
+  const r = mulberry32(13);
+  const pos = geo.attributes.position;
+  const seen = new Map<string, [number, number, number]>();
+  for (let i = 0; i < pos.count; i++) {
+    const y = pos.getY(i);
+    if (Math.abs(y) > 4.49) continue; // keep the tip and the rim of the cap intact
+    const key = `${pos.getX(i).toFixed(3)},${y.toFixed(3)},${pos.getZ(i).toFixed(3)}`;
+    let d = seen.get(key);
+    if (!d) {
+      d = [(r() - 0.5) * 0.9, (r() - 0.5) * 0.8, (r() - 0.5) * 0.9];
+      seen.set(key, d);
+    }
+    pos.setXYZ(i, pos.getX(i) + d[0], y + d[1], pos.getZ(i) + d[2]);
   }
-  const t = new THREE.CanvasTexture(c);
-  t.colorSpace = THREE.SRGBColorSpace;
-  t.wrapS = t.wrapT = THREE.RepeatWrapping;
-  // ExtrudeGeometry UVs are in world units, so this is one 8x8-unit tile per repeat.
-  t.repeat.set(1 / 8, 1 / 8);
-  t.anisotropy = 4;
-  return t;
+  geo.computeVertexNormals();
+  return geo;
 }
 
 function roundedRect(w: number, r: number): THREE.Shape {
@@ -87,7 +85,7 @@ export class SceneManager {
   private readonly container: HTMLElement;
   private readonly resizeObserver: ResizeObserver;
   private readonly callbacks = new Set<(dt: number) => void>();
-  private readonly clouds: THREE.Mesh[] = [];
+  private readonly clouds: THREE.Group[] = [];
   private readonly water: THREE.Mesh;
   private readonly waterBase: Float32Array;
   private readonly effects: DisasterEffects;
@@ -358,7 +356,7 @@ export class SceneManager {
 
   private animateScenery(dt: number): void {
     for (const c of this.clouds) {
-      c.position.x += dt * (0.4 + c.scale.x * 0.05);
+      c.position.x += dt * (0.4 + c.scale.x * 0.4);
       if (c.position.x > 70) c.position.x = -70;
     }
     if (this.water.visible) {
@@ -491,7 +489,10 @@ export class SceneManager {
         bevelSegments: 3,
         curveSegments: 8,
       }),
-      new THREE.MeshStandardMaterial({ map: grassTexture(), roughness: 0.95 }),
+      [
+        new THREE.MeshStandardMaterial({ map: grassTexture(), roughness: 0.95 }),
+        new THREE.MeshStandardMaterial({ map: dirtTexture(), roughness: 1 }),
+      ],
     );
     slab.rotation.x = -Math.PI / 2;
     // Extrude spans z in [-0.25, depth + 0.25] (bevel included); after rotation that is +y, so lift down by the top.
@@ -500,49 +501,17 @@ export class SceneManager {
 
     // Dirt underside: inverted low-poly cone.
     const dirt = new THREE.Mesh(
-      new THREE.ConeGeometry(w * 0.62, 9, 7, 1),
-      new THREE.MeshStandardMaterial({ color: '#8b5a3c', roughness: 1, flatShading: true }),
+      jitterCone(new THREE.ConeGeometry(w * 0.62, 9, 10, 3)),
+      new THREE.MeshStandardMaterial({ map: dirtTexture(), roughness: 1, flatShading: true }),
     );
     dirt.rotation.x = Math.PI;
     dirt.rotation.y = 0.4;
     dirt.position.y = -1.15 - 4.5;
     dirt.castShadow = true;
 
-    const r = mulberry32(42);
-    const rockMat = new THREE.MeshStandardMaterial({ color: '#9aa3ad', roughness: 0.9, flatShading: true });
-    const rocks = new THREE.Group();
-    for (let i = 0; i < 6; i++) {
-      const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(0.35 + r() * 0.35, 0), rockMat);
-      const a = r() * Math.PI * 2;
-      const d = getIslandSize() / 2 + 0.2 + r() * 0.8;
-      rock.position.set(Math.cos(a) * d, -0.2 - r() * 0.2, Math.sin(a) * d);
-      rock.rotation.set(r() * 3, r() * 3, r() * 3);
-      rock.castShadow = true;
-      rock.receiveShadow = true;
-      rocks.add(rock);
-    }
+    const scenery = buildIslandScenery(getIslandSize());
 
-    // A few flowers on the rim, outside the 16x16 build area.
-    const flowerGeo = new THREE.SphereGeometry(0.14, 8, 6);
-    const colors = ['#ff8fb1', '#ffd23f', '#ffffff', '#c792ff'];
-    const flowerMats = colors.map((color) => new THREE.MeshStandardMaterial({ color, roughness: 0.6 }));
-    const flowers = new THREE.Group();
-    for (let i = 0; i < 24; i++) {
-      const f = new THREE.Mesh(flowerGeo, flowerMats[i % flowerMats.length]);
-      const side = Math.floor(r() * 4);
-      const along = (r() - 0.5) * (getIslandSize() + 1);
-      const out = getIslandSize() / 2 + 0.35 + r() * 0.5;
-      const [x, z] = [
-        [along, out],
-        [along, -out],
-        [out, along],
-        [-out, along],
-      ][side];
-      f.position.set(x, 0.14, z);
-      flowers.add(f);
-    }
-
-    this.islandGroup.add(slab, dirt, rocks, flowers);
+    this.islandGroup.add(slab, dirt, scenery);
     if (!this.islandGroup.parent) this.scene.add(this.islandGroup);
   }
 
@@ -556,8 +525,19 @@ export class SceneManager {
       opacity: 0.95,
     });
     for (let i = 0; i < 7; i++) {
-      const cloud = new THREE.Mesh(geo, mat);
-      cloud.scale.set(5 + r() * 5, 1.3 + r() * 0.7, 2.5 + r() * 2);
+      // Each cloud is a cluster of puffs: a lumpy row with a couple of taller bumps on top.
+      const cloud = new THREE.Group();
+      const puffs = 5 + Math.floor(r() * 3);
+      for (let k = 0; k < puffs; k++) {
+        const t = puffs === 1 ? 0 : k / (puffs - 1) - 0.5;
+        const puff = new THREE.Mesh(geo, mat);
+        const bump = 1 - Math.abs(t) * 1.3;
+        const rad = 1.5 + bump * 1.8 + r() * 0.6;
+        puff.scale.set(rad, rad * 0.62, rad * 0.9);
+        puff.position.set(t * 9, bump * 0.7 + r() * 0.4, (r() - 0.5) * 1.6);
+        cloud.add(puff);
+      }
+      cloud.scale.setScalar(0.8 + r() * 0.7);
       cloud.position.set((r() - 0.5) * 140, 16 + r() * 14, -30 - r() * 40);
       this.clouds.push(cloud);
       this.scene.add(cloud);
