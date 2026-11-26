@@ -14,11 +14,12 @@ export function ModsPanel({ actions }: { actions: GameActions }) {
       <button
         type="button"
         data-testid="mods-open"
+        aria-label="Mods"
         onClick={() => setOpen(true)}
         className="pointer-events-auto flex min-h-11 items-center gap-1.5 rounded-2xl bg-white/90 px-3.5 text-sm font-extrabold shadow-md backdrop-blur active:scale-95"
       >
         <Puzzle size={20} aria-hidden="true" />
-        <span>Mods</span>
+        <span className="compact:sr-only">Mods</span>
         {active.activeCount > 0 && (
           <span
             data-testid="mods-active-count"

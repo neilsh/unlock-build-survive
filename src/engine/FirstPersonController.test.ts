@@ -97,6 +97,41 @@ describe('FirstPersonController', () => {
     expect(captured.size).toBe(0);
   });
 
+  it('fires on a quick mouse click but not on a touch tap (touch uses the Build button)', () => {
+    const cam = new THREE.PerspectiveCamera(45, 1, 0.1, 200);
+    const { dom } = mockDom();
+    const fp = new FirstPersonController(cam, dom);
+    fp.setEnabled(true);
+    let fired = 0;
+    fp.setFireHandler(() => fired++);
+    const tap = (pointerType: string, pointerId: number) => {
+      const at = { button: 0, isPrimary: true, pointerId, pointerType, clientX: 50, clientY: 50 };
+      dom.dispatchEvent(Object.assign(new Event('pointerdown'), at));
+      dom.dispatchEvent(Object.assign(new Event('pointerup'), at));
+    };
+    tap('mouse', 1);
+    expect(fired).toBe(1);
+    tap('touch', 2);
+    expect(fired).toBe(1);
+    // A touch drag still looks around.
+    const yaw = fp.yaw;
+    dom.dispatchEvent(
+      Object.assign(new Event('pointerdown'), {
+        button: 0,
+        isPrimary: true,
+        pointerId: 3,
+        pointerType: 'touch',
+        clientX: 10,
+        clientY: 10,
+      }),
+    );
+    dom.dispatchEvent(
+      Object.assign(new Event('pointermove'), { isPrimary: true, pointerId: 3, clientX: 60, clientY: 10 }),
+    );
+    expect(fp.yaw).not.toBe(yaw);
+    fp.dispose();
+  });
+
   it('pauses keyboard and pointer input when setInputPaused(true) and resumes cleanly', () => {
     const winTarget = new EventTarget();
     vi.stubGlobal('window', winTarget);

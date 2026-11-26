@@ -101,7 +101,7 @@ function LevelSelect({ actions, onClose }: { actions: GameActions; onClose: () =
   );
 }
 
-function GoalCard({ level, actions }: { level: Level; actions: GameActions }) {
+export function GoalCard({ level, actions }: { level: Level; actions: GameActions }) {
   const ui = useUIState();
   const info = useLevelInfo();
   const max = level.constraints?.maxBlocks;
@@ -114,7 +114,7 @@ function GoalCard({ level, actions }: { level: Level; actions: GameActions }) {
     <section
       aria-label="Level goal"
       data-testid="goal-card"
-      className="pointer-events-auto flex w-full max-w-xs flex-col gap-1.5 rounded-3xl bg-white/90 p-3 text-sm shadow-xl backdrop-blur"
+      className="pointer-events-auto flex w-full max-w-xs flex-col gap-1.5 rounded-3xl bg-white/90 p-3 text-sm shadow-xl backdrop-blur compact:gap-1 compact:p-2 compact:text-xs"
     >
       <div className="flex items-center justify-between gap-2">
         <h2 className="flex items-center gap-1.5 font-black">
@@ -127,12 +127,12 @@ function GoalCard({ level, actions }: { level: Level; actions: GameActions }) {
           aria-label="Leave level"
           title="Leave level"
           onClick={() => actions.selectLevel(null)}
-          className="flex size-8 items-center justify-center rounded-xl bg-sky-100 active:scale-95"
+          className="flex size-8 items-center justify-center rounded-xl bg-sky-100 active:scale-95 compact:size-11"
         >
           <X size={16} />
         </button>
       </div>
-      <p className="font-semibold">{level.blurb}</p>
+      <p className="font-semibold compact:hidden">{level.blurb}</p>
       <ul className="flex flex-col gap-0.5 font-bold text-sky-900">
         {goalLines(level).map((line) => (
           <li key={line}>{line}</li>
@@ -178,12 +178,15 @@ export function LevelPanel({
   open: controlledOpen,
   onOpenChange,
   hideButton = false,
+  hideGoal = false,
 }: {
   actions: GameActions;
   extra?: ReactNode;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   hideButton?: boolean;
+  /** The goal card is rendered elsewhere (phone layout). */
+  hideGoal?: boolean;
 }) {
   const ui = useUIState();
   const [internalOpen, setInternalOpen] = useState(false);
@@ -202,15 +205,16 @@ export function LevelPanel({
             type="button"
             data-testid="level-toggle"
             onClick={() => setOpen(true)}
+            aria-label={level ? 'Levels' : 'Challenges'}
             className="pointer-events-auto flex min-h-11 items-center gap-1.5 rounded-2xl bg-white/90 px-3.5 text-sm font-extrabold shadow-md backdrop-blur active:scale-95"
           >
             <MapIcon size={20} aria-hidden="true" />
-            {level ? 'Levels' : 'Challenges'}
+            <span className="compact:sr-only">{level ? 'Levels' : 'Challenges'}</span>
           </button>
         )}
         {extra}
       </div>
-      {level && <GoalCard level={level} actions={actions} />}
+      {level && !hideGoal && <GoalCard level={level} actions={actions} />}
       {open && <LevelSelect actions={actions} onClose={() => setOpen(false)} />}
     </div>
   );

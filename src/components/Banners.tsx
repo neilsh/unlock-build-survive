@@ -43,7 +43,7 @@ export function Banners({ actions }: { actions: GameActions }) {
         <div
           data-testid="village-over-banner"
           role="status"
-          className="pointer-events-auto flex flex-col items-center gap-2.5 rounded-3xl bg-white/95 px-6 py-4 text-center text-sky-950 shadow-2xl"
+          className="pointer-events-auto flex flex-col items-center gap-2.5 rounded-3xl bg-white/95 px-6 py-4 compact:max-w-[22rem] compact:gap-1 compact:px-4 compact:py-2 text-center text-sky-950 shadow-2xl"
         >
           <div className="flex items-center gap-2 text-rose-600">
             <Skull size={32} aria-hidden="true" />
@@ -69,7 +69,7 @@ export function Banners({ actions }: { actions: GameActions }) {
         <div
           data-testid="village-cleared-banner"
           role="status"
-          className="pointer-events-auto flex flex-col items-center gap-2 rounded-3xl bg-white/95 px-6 py-4 text-center text-sky-950 shadow-2xl"
+          className="pointer-events-auto flex flex-col items-center gap-2 rounded-3xl bg-white/95 px-6 py-4 compact:max-w-[22rem] compact:gap-1 compact:px-4 compact:py-2 text-center text-sky-950 shadow-2xl"
         >
           <span data-testid="win-banner" className="text-2xl font-black text-emerald-700">
             Round {s.villageRound} Cleared!
@@ -95,7 +95,7 @@ export function Banners({ actions }: { actions: GameActions }) {
       <div
         data-testid="survival-over-banner"
         role="status"
-        className="pointer-events-auto flex flex-col items-center gap-2.5 rounded-3xl bg-white/95 px-6 py-4 text-center text-sky-950 shadow-2xl"
+        className="pointer-events-auto flex flex-col items-center gap-2.5 rounded-3xl bg-white/95 px-6 py-4 compact:max-w-[22rem] compact:gap-1 compact:px-4 compact:py-2 text-center text-sky-950 shadow-2xl"
       >
         <div className="flex items-center gap-2 text-rose-600">
           <Skull size={32} aria-hidden="true" />
@@ -146,7 +146,7 @@ export function Banners({ actions }: { actions: GameActions }) {
       <div
         data-testid="result-banner"
         role="status"
-        className="pointer-events-auto flex flex-col items-center gap-2 rounded-3xl bg-white/95 px-6 py-4 text-center text-sky-950 shadow-2xl"
+        className="pointer-events-auto flex flex-col items-center gap-2 rounded-3xl bg-white/95 px-6 py-4 compact:max-w-[22rem] compact:gap-1 compact:px-4 compact:py-2 text-center text-sky-950 shadow-2xl"
       >
         <div data-testid="star-row" aria-label={`${s.stars} out of 3 stars`} className="flex gap-1">
           {([1, 2, 3] as const).map((n) => (
@@ -186,7 +186,7 @@ export function Banners({ actions }: { actions: GameActions }) {
     <div
       data-testid="result-banner"
       role="status"
-      className="pointer-events-none flex flex-col items-center gap-2 rounded-3xl bg-white/95 px-6 py-4 text-center text-sky-950 shadow-2xl"
+      className="pointer-events-none flex flex-col items-center gap-2 rounded-3xl bg-white/95 px-6 py-4 compact:max-w-[22rem] compact:gap-1 compact:px-4 compact:py-2 text-center text-sky-950 shadow-2xl"
     >
       <div data-testid="star-row" aria-label={`${s.stars} out of 3 stars`} className="flex gap-1">
         {([1, 2, 3] as const).map((n) => (

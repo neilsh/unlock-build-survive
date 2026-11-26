@@ -112,7 +112,17 @@ export class SceneManager {
     this.domElement.style.touchAction = 'none';
     container.appendChild(this.domElement);
 
-    this.renderer = new THREE.WebGLRenderer({ canvas: this.domElement, antialias: true });
+    // Phones: skip MSAA (a big multisampled buffer is what exhausts mobile GPU memory) and prefer the fast GPU.
+    const touch = window.matchMedia?.('(pointer: coarse)').matches ?? false;
+    this.renderer = new THREE.WebGLRenderer({
+      canvas: this.domElement,
+      antialias: !touch,
+      powerPreference: 'high-performance',
+    });
+    // A lost WebGL context (phone memory pressure, tab switch) must be allowed to come back, otherwise the
+    // browser leaves a blank canvas with a broken-image icon.
+    this.domElement.addEventListener('webglcontextlost', this.onContextLost);
+    this.domElement.addEventListener('webglcontextrestored', this.onContextRestored);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, this.quality.maxPixelRatio));
     this.renderer.shadowMap.enabled = this.quality.shadows;
     // PCFSoftShadowMap was removed in recent three; PCF honours shadow.radius for soft edges.
@@ -162,6 +172,19 @@ export class SceneManager {
     this.timer.connect(document);
     this.rafId = requestAnimationFrame(this.loop);
   }
+
+  private readonly onContextLost = (e: Event): void => {
+    e.preventDefault();
+  };
+
+  private readonly onContextRestored = (): void => {
+    this.scene.traverse((obj) => {
+      if (!(obj instanceof THREE.Mesh)) return;
+      const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+      for (const m of mats) m.needsUpdate = true;
+    });
+    this.resize();
+  };
 
   /** Register a per-frame callback. Returns an unsubscribe function. */
   onFrame(cb: (dtSeconds: number) => void): () => void {
@@ -266,6 +289,8 @@ export class SceneManager {
     this.disposed = true;
     cancelAnimationFrame(this.rafId);
     this.resizeObserver.disconnect();
+    this.domElement.removeEventListener('webglcontextlost', this.onContextLost);
+    this.domElement.removeEventListener('webglcontextrestored', this.onContextRestored);
     this.callbacks.clear();
     this.controls.removeEventListener('start', this.cancelTween);
     this.controls.dispose();

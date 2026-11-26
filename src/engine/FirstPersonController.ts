@@ -122,7 +122,14 @@ export class FirstPersonController {
       };
       const endDrag = (e: PointerEvent) => {
         if (this.dragPointerId !== e.pointerId) return;
-        const quickClick = e.type === 'pointerup' && this.enabled && !this.paused && this.dragMoved < 6;
+        // Fingers only look around: touch players build / break / fire with the on-screen buttons, so a
+        // lazy tap while turning never places a block. Mouse and pen clicks still act at the crosshair.
+        const quickClick =
+          e.type === 'pointerup' &&
+          e.pointerType !== 'touch' &&
+          this.enabled &&
+          !this.paused &&
+          this.dragMoved < 6;
         this.releaseDragCapture();
         if (quickClick) this.fireHandler?.('click');
       };

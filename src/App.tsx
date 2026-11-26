@@ -2,10 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { HUD } from './components/HUD';
 import { installDebugApi } from './engine/debug';
 import { Game } from './engine/Game';
+import { installMobileGuards } from './utils/mobileGuards';
 
 export function App() {
   const container = useRef<HTMLDivElement>(null);
   const [game, setGame] = useState<Game | null>(null);
+
+  useEffect(() => installMobileGuards(), []);
 
   useEffect(() => {
     const el = container.current;

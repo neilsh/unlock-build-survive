@@ -16,7 +16,7 @@ export function StandingSparkline({ values }: { values: number[] }) {
       viewBox={`-2 -2 ${W + 4} ${H + 4}`}
       width={W}
       height={H}
-      className="overflow-visible"
+      className="overflow-visible compact:hidden"
     >
       <line x1="0" y1="0" x2={W} y2="0" className="stroke-sky-200" strokeDasharray="4 3" />
       <polyline

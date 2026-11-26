@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_SETTINGS } from '../types/settings';
-import { SETTINGS_KEY, loadSettings, saveSettings } from './settings';
+import { DEFAULT_SETTINGS, MOBILE_DEFAULT_SETTINGS } from '../types/settings';
+import { SETTINGS_KEY, deviceDefaultSettings, loadSettings, saveSettings } from './settings';
 
 function fakeStorage(initial?: string) {
   const data = new Map<string, string>();
@@ -15,6 +15,16 @@ describe('settings persistence', () => {
   it('defaults when nothing is stored or storage is unavailable', () => {
     expect(loadSettings(fakeStorage())).toEqual(DEFAULT_SETTINGS);
     expect(loadSettings(null)).toEqual(DEFAULT_SETTINGS);
+  });
+
+  it('starts touch devices on lighter graphics, but never overrides a saved choice', () => {
+    expect(MOBILE_DEFAULT_SETTINGS.quality).not.toBe('high');
+    expect(deviceDefaultSettings(true)).toEqual(MOBILE_DEFAULT_SETTINGS);
+    expect(deviceDefaultSettings(false)).toEqual(DEFAULT_SETTINGS);
+    const mobile = deviceDefaultSettings(true);
+    expect(loadSettings(fakeStorage(), mobile)).toEqual(mobile);
+    expect(loadSettings(fakeStorage('{"quality":"high"}'), mobile).quality).toBe('high');
+    expect(loadSettings(fakeStorage('{"invertLook":true}'), mobile).quality).toBe(mobile.quality);
   });
 
   it('round-trips', () => {

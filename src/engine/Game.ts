@@ -44,8 +44,8 @@ import { disasterAddonSimOptions } from '../types/addons';
 import { ProceduralAssets } from './ProceduralAssets';
 import { AudioSynth } from './AudioSynth';
 import { DEFAULT_AUDIO_SETTINGS, loadAudioSettings, saveAudioSettings } from '../state/audioSettings';
-import { loadSettings, saveSettings } from '../state/settings';
-import { DEFAULT_SETTINGS, sanitizeSettings, type AppSettings } from '../types/settings';
+import { deviceDefaultSettings, loadSettings, saveSettings } from '../state/settings';
+import { sanitizeSettings, type AppSettings } from '../types/settings';
 import { SceneManager } from './SceneManager';
 import { CombatController } from './game/CombatController';
 import { InputRouter } from './game/InputRouter';
@@ -582,6 +582,8 @@ export class Game implements GameActions, GameDebugApi {
   setP2Control: GameActions['setP2Control'] = (patch) => this.input.setP2Control(patch);
   setTouchMove: GameActions['setTouchMove'] = (x, y) => this.input.setTouchMove(x, y);
   setTouchJump: GameActions['setTouchJump'] = (on) => this.input.setTouchJump(on);
+  touchPrimary: GameActions['touchPrimary'] = () => this.input.handlePrimaryAction('click');
+  touchSecondary: GameActions['touchSecondary'] = () => this.input.touchSecondary();
 
   setMirrorX: GameActions['setMirrorX'] = (on) => {
     this.build.setMirrorX(on);
@@ -707,8 +709,9 @@ export class Game implements GameActions, GameDebugApi {
   resetSettings: GameActions['resetSettings'] = () => {
     this.setMuted(DEFAULT_AUDIO_SETTINGS.muted);
     this.setMusicVolume(DEFAULT_AUDIO_SETTINGS.musicVolume);
-    this.applySettings({ ...DEFAULT_SETTINGS });
-    saveSettings(DEFAULT_SETTINGS);
+    const defaults = deviceDefaultSettings();
+    this.applySettings(defaults);
+    saveSettings(defaults);
   };
   setModalOpen: GameActions['setModalOpen'] = (open) => {
     this.openModals = Math.max(0, this.openModals + (open ? 1 : -1));

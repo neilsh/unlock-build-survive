@@ -1,15 +1,65 @@
 @import 'tailwindcss';
 
+/*
+ * `compact:` = phone / tablet / small-window layout (touch screen, narrow, or short viewport).
+ * Keep the query in sync with COMPACT_QUERY in src/components/useLayout.ts.
+ */
+@custom-variant compact {
+  @media (pointer: coarse), (max-width: 900px), (max-height: 520px) {
+    @slot;
+  }
+}
+
 html,
 body,
 #root {
   height: 100%;
   margin: 0;
 }
+/* Dynamic viewport height: tracks the mobile browser's collapsing address bar instead of overflowing it. */
+@supports (height: 100dvh) {
+  html,
+  body,
+  #root {
+    height: 100dvh;
+  }
+}
+html {
+  /* No rubber-banding or pull-to-refresh while dragging the view, and no double-tap zoom. */
+  overscroll-behavior: none;
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
 body {
   overflow: hidden;
+  overscroll-behavior: none;
+  /* The page itself never scrolls: it is pinned to the viewport. Menus and modals scroll inside themselves. */
+  position: fixed;
+  inset: 0;
+  width: 100%;
   background: #bfe6ff;
   font-family: system-ui, sans-serif;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+/* Scrollable panels hand the end of a scroll to nothing (not the page behind them). */
+.ubs-scroll {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+/* Padding that never goes below the notch / home-indicator / rounded-corner insets. */
+.ubs-pad-safe {
+  padding-top: max(0.75rem, env(safe-area-inset-top));
+  padding-right: max(0.75rem, env(safe-area-inset-right));
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  padding-left: max(0.75rem, env(safe-area-inset-left));
+}
+canvas {
+  -webkit-touch-callout: none;
 }
 
 @keyframes ubs-cloud-drift {
@@ -47,4 +97,27 @@ body {
 [data-gamepad-focus] {
   outline: 4px solid #f59e0b;
   outline-offset: 3px;
+}
+
+/* Text fields stay selectable/editable even though the rest of the game is not. */
+input,
+textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.ubs-hide-scrollbar {
+  scrollbar-width: none;
+}
+.ubs-hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* iOS Safari zooms into any text field under 16px; keep fields at 16px on touch screens. */
+@media (pointer: coarse) {
+  input:not([type='range']):not([type='checkbox']):not([type='radio']),
+  textarea,
+  select {
+    font-size: 16px;
+  }
 }

@@ -133,6 +133,14 @@ export class InputRouter {
     this.touchMove.jump = jump;
   }
 
+  /** On-screen Break button: erase at the crosshair while building (nothing in Explore / disaster runs). */
+  touchSecondary(): void {
+    const s = uiStore.getState();
+    if (s.mode !== 'build' || s.exploreMode) return;
+    this.d.audio.resume();
+    this.d.build.eraseAtCrosshair();
+  }
+
   /** Sends gamepad + touch movement to the first-person controller (same path for both). */
   private applyMove(gpX: number, gpY: number, gpJump: boolean): void {
     const t = this.touchMove;

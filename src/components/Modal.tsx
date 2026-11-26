@@ -50,7 +50,7 @@ export function Modal({
   }, []);
 
   return (
-    <div className="pointer-events-auto fixed inset-0 z-30 flex items-center justify-center p-3">
+    <div className="ubs-pad-safe pointer-events-auto fixed inset-0 z-30 flex items-center justify-center">
       <button
         type="button"
         tabIndex={-1}
@@ -63,7 +63,7 @@ export function Modal({
         aria-modal="true"
         aria-label={ariaLabel}
         data-testid={testId}
-        className={`relative z-10 flex max-h-full w-full ${maxWidthClass} flex-col gap-3 overflow-y-auto rounded-3xl bg-sky-50 p-4 shadow-2xl`}
+        className={`ubs-scroll relative z-10 flex max-h-full w-full ${maxWidthClass} flex-col gap-3 rounded-3xl bg-sky-50 p-4 shadow-2xl`}
       >
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">

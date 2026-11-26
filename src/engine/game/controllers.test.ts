@@ -178,6 +178,18 @@ describe('InputRouter', () => {
     expect(deps.build.toggleDoorAtCrosshair).toHaveBeenCalledWith(6);
   });
 
+  it('touch Break erases at the crosshair, but only while building outside Explore', () => {
+    const { deps, r } = make();
+    r.touchSecondary();
+    expect(deps.build.eraseAtCrosshair).toHaveBeenCalledTimes(1);
+    expect(deps.audio.resume).toHaveBeenCalled();
+    uiStore.setState({ exploreMode: true });
+    r.touchSecondary();
+    uiStore.setState({ exploreMode: false, mode: 'simulating' });
+    r.touchSecondary();
+    expect(deps.build.eraseAtCrosshair).toHaveBeenCalledTimes(1);
+  });
+
   it('click during a run fires the weapon', () => {
     const { deps, r } = make();
     uiStore.setState({ mode: 'simulating', equippedWeapon: 'laser_blaster' as never });

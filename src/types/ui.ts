@@ -172,6 +172,10 @@ export interface GameActions {
   /** On-screen joystick for the local player: strafe (right +) and forward (+), each -1..1. */
   setTouchMove(strafe: number, forward: number): void;
   setTouchJump(jump: boolean): void;
+  /** On-screen Build / Door / Fire button (touch): same as a click or the gamepad's RT. */
+  touchPrimary(): void;
+  /** On-screen Break button (touch): erases the piece at the crosshair, like the gamepad's LT. */
+  touchSecondary(): void;
   nextSurvivalWave(): void;
   restartSurvival(): void;
 }

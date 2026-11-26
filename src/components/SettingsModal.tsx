@@ -42,7 +42,11 @@ const CONTROL_REFERENCE: ReadonlyArray<{ icon: ReactNode; title: string; lines: 
   {
     icon: <Smartphone size={16} aria-hidden="true" />,
     title: 'Touch',
-    lines: ['Left joystick moves · Drag the view to look', 'Jump button · Tap the island to build'],
+    lines: [
+      'Left joystick moves · Drag the view to look',
+      'Build / Break buttons aim at the + · Jump button',
+      'Tools button opens blocks, Test it! starts the disaster',
+    ],
   },
 ];
 
@@ -77,7 +81,7 @@ interface SliderRowProps {
 function SliderRow({ testId, label, value, min, max, step, display, onChange }: SliderRowProps) {
   return (
     <label className="flex items-center justify-between gap-3 text-sm font-bold text-sky-950">
-      <span className="w-40 shrink-0">{label}</span>
+      <span className="w-28 shrink-0 sm:w-40">{label}</span>
       <input
         type="range"
         data-testid={testId}
@@ -87,7 +91,7 @@ function SliderRow({ testId, label, value, min, max, step, display, onChange }: 
         step={step}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="min-h-8 w-full min-w-0 accent-amber-400"
+        className="min-h-11 w-full min-w-0 accent-amber-400"
       />
       <span className="w-12 shrink-0 text-right text-xs font-black text-sky-800">{display}</span>
     </label>

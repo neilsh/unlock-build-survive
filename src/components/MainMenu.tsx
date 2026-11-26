@@ -162,10 +162,10 @@ export function MainMenu({ actions, onOpenChallenges, onOpenShop, onOpenSettings
     <div
       data-testid="main-menu"
       aria-label="Main Menu"
-      className={`pointer-events-auto fixed inset-0 z-20 flex overflow-y-auto p-4 ${s.hasStarted ? 'bg-sky-950/45 backdrop-blur-sm' : ''}`}
+      className={`ubs-pad-safe ubs-scroll pointer-events-auto fixed inset-0 z-20 flex ${s.hasStarted ? 'bg-sky-950/45 backdrop-blur-sm' : ''}`}
     >
       {!s.hasStarted && <MenuBackdrop />}
-      <div className="relative m-auto flex w-full max-w-3xl flex-col gap-4 rounded-3xl bg-sky-50/95 p-6 text-sky-950 shadow-2xl ring-2 ring-white/80">
+      <div className="relative m-auto flex w-full max-w-3xl flex-col gap-4 rounded-3xl bg-sky-50/95 p-6 text-sky-950 shadow-2xl ring-2 ring-white/80 compact:gap-3 compact:p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <div className="flex flex-wrap items-baseline gap-2.5">
@@ -284,7 +284,7 @@ export function MainMenu({ actions, onOpenChallenges, onOpenShop, onOpenSettings
           </div>
         )}
 
-        <div className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-1.5 compact:order-1">
           <span className="text-xs font-black uppercase tracking-wide text-sky-800">Add-Ons</span>
           <div className="grid gap-2 sm:grid-cols-2">
             <button
@@ -403,7 +403,7 @@ export function MainMenu({ actions, onOpenChallenges, onOpenShop, onOpenSettings
               type="button"
               data-testid="menu-creative"
               onClick={() => actions.startPlayMode('creative')}
-              className={`group flex flex-col justify-between gap-3 rounded-3xl p-5 text-left shadow-lg transition hover:-translate-y-0.5 active:scale-[0.98] ${
+              className={`group flex flex-col justify-between gap-3 rounded-3xl p-5 compact:p-3.5 text-left shadow-lg transition hover:-translate-y-0.5 active:scale-[0.98] ${
                 s.hasStarted && s.playMode === 'creative' && s.levelId === null
                   ? 'bg-amber-200 ring-2 ring-amber-400'
                   : 'bg-white hover:bg-amber-50'
@@ -434,7 +434,7 @@ export function MainMenu({ actions, onOpenChallenges, onOpenShop, onOpenSettings
               type="button"
               data-testid="menu-survival"
               onClick={() => actions.startPlayMode('survival')}
-              className={`group flex flex-col justify-between gap-3 rounded-3xl p-5 text-left shadow-lg transition hover:-translate-y-0.5 active:scale-[0.98] ${
+              className={`group flex flex-col justify-between gap-3 rounded-3xl p-5 compact:p-3.5 text-left shadow-lg transition hover:-translate-y-0.5 active:scale-[0.98] ${
                 s.hasStarted && s.playMode === 'survival'
                   ? 'bg-rose-100 ring-2 ring-rose-400'
                   : 'bg-white hover:bg-rose-50'
@@ -479,7 +479,7 @@ export function MainMenu({ actions, onOpenChallenges, onOpenShop, onOpenSettings
               type="button"
               data-testid="menu-village"
               onClick={() => actions.startPlayMode('village')}
-              className={`group flex flex-col justify-between gap-3 rounded-3xl p-5 text-left shadow-lg transition hover:-translate-y-0.5 active:scale-[0.98] ${
+              className={`group flex flex-col justify-between gap-3 rounded-3xl p-5 compact:p-3.5 text-left shadow-lg transition hover:-translate-y-0.5 active:scale-[0.98] ${
                 s.hasStarted && s.playMode === 'village'
                   ? 'bg-emerald-100 ring-2 ring-emerald-400'
                   : 'bg-white hover:bg-emerald-50'
@@ -512,7 +512,7 @@ export function MainMenu({ actions, onOpenChallenges, onOpenShop, onOpenSettings
               type="button"
               data-testid="menu-village-creative"
               onClick={() => actions.startPlayMode('villageCreative')}
-              className={`group flex flex-col justify-between gap-3 rounded-3xl p-5 text-left shadow-lg transition hover:-translate-y-0.5 active:scale-[0.98] ${
+              className={`group flex flex-col justify-between gap-3 rounded-3xl p-5 compact:p-3.5 text-left shadow-lg transition hover:-translate-y-0.5 active:scale-[0.98] ${
                 s.hasStarted && s.playMode === 'villageCreative'
                   ? 'bg-teal-100 ring-2 ring-teal-400'
                   : 'bg-white hover:bg-teal-50'

@@ -29,6 +29,12 @@ export const DEFAULT_SETTINGS: AppSettings = {
   showHints: true,
 };
 
+/**
+ * First-run defaults on a phone or tablet (touch screen): medium graphics (soft shadows, pixel ratio
+ * capped at 1.5) keeps the frame rate up on mobile GPUs. Players can still pick High in Settings.
+ */
+export const MOBILE_DEFAULT_SETTINGS: AppSettings = { ...DEFAULT_SETTINGS, quality: 'medium' };
+
 export const LOOK_SENSITIVITY_RANGE = { min: 0.25, max: 2.5 } as const;
 export const GAMEPAD_DEADZONE_RANGE = { min: 0.05, max: 0.4 } as const;
 

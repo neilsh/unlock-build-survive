@@ -76,7 +76,7 @@ export function BuildPanel({ actions }: { actions: GameActions }) {
     return (
       <section
         aria-label="Explore quick-builders"
-        className="pointer-events-auto flex max-h-[calc(100vh-13rem)] w-full max-w-[calc(100%-6rem)] flex-col gap-2 overflow-y-auto rounded-3xl bg-sky-100/90 p-2.5 shadow-xl backdrop-blur sm:max-w-md"
+        className="ubs-scroll pointer-events-auto flex max-h-[calc(100vh-13rem)] w-full max-w-[calc(100%-6rem)] flex-col gap-2 rounded-3xl bg-sky-100/90 p-2.5 shadow-xl backdrop-blur sm:max-w-md compact:max-h-none compact:w-full compact:max-w-none"
       >
         <div
           data-testid="explore-quickbuilders-banner"
@@ -115,7 +115,7 @@ export function BuildPanel({ actions }: { actions: GameActions }) {
   return (
     <section
       aria-label="Build tools"
-      className="pointer-events-auto flex max-h-[calc(100vh-13rem)] w-full max-w-[calc(100%-6rem)] flex-col gap-2 overflow-y-auto rounded-3xl bg-sky-100/90 p-2.5 shadow-xl backdrop-blur sm:max-w-md"
+      className="ubs-scroll pointer-events-auto flex max-h-[calc(100vh-13rem)] w-full max-w-[calc(100%-6rem)] flex-col gap-2 rounded-3xl bg-sky-100/90 p-2.5 shadow-xl backdrop-blur sm:max-w-md compact:max-h-none compact:w-full compact:max-w-none"
     >
       <div className="flex flex-col gap-1">
         <span className={SECTION_LABEL}>Tools</span>

@@ -19,6 +19,7 @@ import {
   Compass,
   Copy,
   Crosshair,
+  Hammer,
   Heart,
   Menu,
   Moon,
@@ -31,10 +32,12 @@ import {
   Swords,
   Timer,
   Users,
+  X,
   Zap,
 } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { useLevelInfo } from '../levels/levelStore';
+import { getLevel } from '../levels/levels';
 import { useUIState } from '../state/store';
 import { DISASTER_ADDON_INFO, type DisasterAddonId } from '../types/addons';
 
@@ -45,19 +48,22 @@ const DISASTER_ADDON_BADGES: ReadonlyArray<{ id: DisasterAddonId; bg: string; ic
   { id: 'slowMotion', bg: 'bg-emerald-600', icon: <Timer size={15} aria-hidden="true" /> },
 ];
 import { ARMORS, WEAPONS } from '../types/gear';
+import { getMaterialDef } from '../types/materials';
 import { isSandboxPlayMode, isTwoPlayerCoop, isVillagePlayMode, type GameActions } from '../types/ui';
 import { Banners } from './Banners';
 import { BuildPanel } from './BuildPanel';
 import { CameraPanel } from './CameraPanel';
 import { DisasterPanel } from './DisasterPanel';
-import { LevelPanel } from './LevelPanel';
+import { GoalCard, LevelPanel } from './LevelPanel';
+import { Swatch } from './Chip';
 import { VillagePanel } from './VillagePanel';
 import { MainMenu } from './MainMenu';
 import { P2Panel } from './P2Panel';
 import { ModsPanel } from './ModsPanel';
 import { SettingsModal } from './SettingsModal';
 import { ShopPanel } from './ShopPanel';
-import { TouchControls, useIsTouchDevice } from './TouchControls';
+import { TouchControls } from './TouchControls';
+import { useCompactLayout, useIsTouchDevice } from './useLayout';
 
 export function HUD({ actions }: { actions: GameActions }) {
   const s = useUIState();
@@ -68,6 +74,8 @@ export function HUD({ actions }: { actions: GameActions }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const flashing = s.damageFlash > clearedFlash;
   const isTouch = useIsTouchDevice();
+  const compact = useCompactLayout();
+  const [buildOpen, setBuildOpen] = useState(false);
 
   useEffect(() => {
     if (s.damageFlash <= clearedFlash) return;
@@ -97,6 +105,8 @@ export function HUD({ actions }: { actions: GameActions }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [actions, levelsOpen, shopOpen, s.menuOpen, s.hasStarted]);
 
+  const level = s.levelId ? getLevel(s.levelId) : undefined;
+  const showTouchControls = isTouch && s.firstPerson && !s.menuOpen;
   const split = s.multiplayerMode === 'split';
   const isVillage = isVillagePlayMode(s.playMode) && s.levelId === null;
   const isSurvival = s.playMode === 'survival' && s.levelId === null;
@@ -105,7 +115,16 @@ export function HUD({ actions }: { actions: GameActions }) {
   const hpColor = hpPct > 60 ? 'bg-emerald-500' : hpPct > 30 ? 'bg-amber-400' : 'bg-rose-500';
 
   return (
-    <div className="pointer-events-none absolute inset-0 select-none font-sans text-sky-950">
+    <div
+      // Inset by the notch / home-indicator areas so nothing in the HUD hides behind them.
+      style={{
+        top: 'env(safe-area-inset-top)',
+        right: 'env(safe-area-inset-right)',
+        bottom: 'env(safe-area-inset-bottom)',
+        left: 'env(safe-area-inset-left)',
+      }}
+      className="pointer-events-none absolute select-none font-sans text-sky-950"
+    >
       {s.firstPerson && flashing && (
         <div
           aria-hidden="true"
@@ -148,11 +167,36 @@ export function HUD({ actions }: { actions: GameActions }) {
 
       {split && !s.menuOpen && <P2Panel actions={actions} />}
 
-      <div className="absolute left-2 top-16">
-        <BuildPanel actions={actions} />
-      </div>
+      {compact ? (
+        // Phones: the build tools fold into a drawer so they never cover the view.
+        s.mode === 'build' &&
+        s.hasStarted && (
+          <div className="pointer-events-none absolute left-2 top-14 z-20 flex max-h-[calc(100dvh-5rem)] w-[min(22rem,calc(100vw-1rem))] flex-col items-start gap-2 portrait:max-h-[48dvh]">
+            <button
+              type="button"
+              data-testid="build-drawer-toggle"
+              aria-expanded={buildOpen}
+              onClick={() => setBuildOpen((o) => !o)}
+              className="pointer-events-auto flex min-h-12 shrink-0 items-center gap-2 rounded-2xl bg-sky-500 px-3.5 text-sm font-extrabold text-white shadow-md active:scale-95"
+            >
+              {buildOpen ? <X size={20} aria-hidden="true" /> : <Hammer size={20} aria-hidden="true" />}
+              <span>{buildOpen ? 'Close' : 'Tools'}</span>
+              {!buildOpen && !s.exploreMode && <Swatch color={getMaterialDef(s.material).color} />}
+            </button>
+            {buildOpen && (
+              <div className="flex min-h-0 w-full flex-1 flex-col">
+                <BuildPanel actions={actions} />
+              </div>
+            )}
+          </div>
+        )
+      ) : (
+        <div className="absolute left-2 top-16">
+          <BuildPanel actions={actions} />
+        </div>
+      )}
 
-      <div className="absolute inset-x-2 top-2 flex flex-wrap items-start justify-center gap-2">
+      <div className="ubs-hide-scrollbar absolute inset-x-2 top-2 flex flex-wrap items-start justify-center gap-2 compact:pointer-events-auto compact:flex-nowrap compact:justify-start compact:overflow-x-auto compact:[&>*]:shrink-0">
         <button
           type="button"
           data-testid="menu-open"
@@ -170,7 +214,7 @@ export function HUD({ actions }: { actions: GameActions }) {
           className="pointer-events-auto flex min-h-11 items-center gap-1.5 rounded-2xl bg-sky-500 px-3.5 text-sm font-extrabold text-white shadow-md transition hover:bg-sky-400 active:scale-95"
         >
           <Save size={17} aria-hidden="true" />
-          <span>Save</span>
+          <span className="compact:sr-only">Save</span>
         </button>
 
         <span
@@ -185,7 +229,7 @@ export function HUD({ actions }: { actions: GameActions }) {
                   : 'bg-amber-300 text-amber-950'
           }`}
         >
-          Mode:{' '}
+          <span className="compact:hidden">Mode:&nbsp;</span>
           {isVillage
             ? s.playMode === 'villageCreative'
               ? 'Village Creative'
@@ -277,6 +321,7 @@ export function HUD({ actions }: { actions: GameActions }) {
 
         <LevelPanel
           actions={actions}
+          hideGoal={compact}
           open={levelsOpen}
           onOpenChange={setLevelsOpen}
           hideButton={isSurvival || isVillage}
@@ -287,10 +332,17 @@ export function HUD({ actions }: { actions: GameActions }) {
             </>
           }
         />
-        {isVillage && <VillagePanel />}
+        {isVillage && !compact && <VillagePanel />}
       </div>
 
-      <div className="absolute right-2 top-16">
+      {compact && (isVillage || level) && (
+        // Phones: the village / level card sits under the top bar, out of the way of the crosshair.
+        <div className="pointer-events-none absolute right-2 top-14 flex w-56 flex-col items-end gap-2">
+          {isVillage ? <VillagePanel /> : level && <GoalCard level={level} actions={actions} />}
+        </div>
+      )}
+
+      <div className="absolute right-2 top-16 compact:hidden">
         <CameraPanel actions={actions} />
       </div>
 
@@ -360,13 +412,13 @@ export function HUD({ actions }: { actions: GameActions }) {
         </div>
       )}
 
-      {isTouch && s.firstPerson && !s.menuOpen && <TouchControls actions={actions} />}
+      {showTouchControls && <TouchControls actions={actions} />}
 
       {isTwoPlayerCoop(s.multiplayerMode) && !s.menuOpen && (
         <div
           data-testid="p2-touch-pad"
           aria-label="Player 2 controls"
-          className="pointer-events-auto fixed bottom-28 right-2 z-10 flex flex-col items-center gap-1.5 rounded-3xl bg-white/90 p-2.5 text-xs font-black shadow-xl backdrop-blur"
+          className="pointer-events-auto fixed bottom-28 right-2 z-10 flex flex-col compact:bottom-auto compact:top-16 compact:origin-top-right compact:scale-90 items-center gap-1.5 rounded-3xl bg-white/90 p-2.5 text-xs font-black shadow-xl backdrop-blur"
         >
           <span className="text-[10px] font-black uppercase tracking-wide text-cyan-800">P2 Controls</span>
           {s.gamepadConnected && (
@@ -452,7 +504,14 @@ export function HUD({ actions }: { actions: GameActions }) {
       )}
 
       {/* The result banner and FP HP bar stack just above the disaster bar so they never hide the building. */}
-      <div className="absolute inset-x-2 bottom-2 flex flex-col items-center gap-2">
+      <div
+        className={`absolute inset-x-2 bottom-2 flex flex-col items-center gap-2 ${
+          showTouchControls
+            ? // Keep the bar between the joystick and the buttons (landscape) or above them (portrait).
+              'landscape:inset-x-[12rem] portrait:bottom-[12rem]'
+            : ''
+        }`}
+      >
         {s.levelId === null && info.notice && (
           <p
             role="status"
@@ -466,7 +525,7 @@ export function HUD({ actions }: { actions: GameActions }) {
         {s.firstPerson && (
           <div
             data-testid="player-hp"
-            className="flex flex-wrap items-center gap-3 rounded-2xl bg-white/90 px-3.5 py-2 text-xs font-extrabold shadow-lg backdrop-blur"
+            className="flex flex-wrap items-center justify-center gap-3 rounded-2xl bg-white/90 px-3.5 py-2 text-xs font-extrabold shadow-lg backdrop-blur compact:gap-2 compact:py-1"
           >
             {creativeSandbox ? (
               <span
@@ -482,7 +541,7 @@ export function HUD({ actions }: { actions: GameActions }) {
                   <Heart size={18} aria-hidden="true" className="fill-rose-500 text-rose-500" />
                   {split ? 'P1 ' : ''}HP {Math.ceil(s.playerHp)} / {s.playerMaxHp}
                 </span>
-                <div className="h-3 w-36 overflow-hidden rounded-full bg-sky-100 shadow-inner">
+                <div className="h-3 w-36 overflow-hidden rounded-full bg-sky-100 shadow-inner compact:w-24">
                   <div
                     className={`h-full transition-all duration-150 ${hpColor}`}
                     style={{ width: `${hpPct}%` }}
@@ -501,14 +560,23 @@ export function HUD({ actions }: { actions: GameActions }) {
                 type="button"
                 data-testid="fp-fire-weapon"
                 onClick={() => actions.fireWeapon()}
-                className="pointer-events-auto inline-flex items-center gap-1 rounded-full bg-amber-300 px-2.5 py-0.5 font-black text-amber-950 shadow-sm hover:bg-amber-200 active:scale-95"
+                className="pointer-events-auto inline-flex items-center gap-1 rounded-full bg-amber-300 px-2.5 py-0.5 font-black text-amber-950 shadow-sm hover:bg-amber-200 active:scale-95 compact:hidden"
               >
                 <Crosshair size={13} aria-hidden="true" />
                 {WEAPONS[s.equippedWeapon].label} · Fire (F)
               </button>
             )}
             {s.settings.showHints && (
-              <span className="text-sky-700">
+              <span className="hidden text-sky-700 compact:inline">
+                {s.mode === 'build'
+                  ? s.exploreMode
+                    ? 'Drag to look · aim the + at a door · Door'
+                    : 'Drag to look · aim the + · Build / Break'
+                  : 'Drag to look · Jump to dodge'}
+              </span>
+            )}
+            {s.settings.showHints && (
+              <span className="text-sky-700 compact:hidden">
                 Controls:{' '}
                 {s.gamepadConnected
                   ? s.mode === 'build'

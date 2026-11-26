@@ -19,4 +19,15 @@ npm run lint     # oxlint
 npm run format   # oxfmt (CI runs `npm run format:check`)
 ```
 
+## Play on a phone
+
+`npm run dev` listens on your local network. Open the **Network** URL it prints (for example
+`http://192.168.1.20:5173`) in your phone's browser while it is on the same Wi-Fi. If it does not load,
+allow Node through the computer's firewall for private networks.
+
+The game adapts to phones and tablets in portrait and landscape: a joystick and Jump / Build / Break
+(Fire during a disaster) buttons, drag the view to look, a **Tools** drawer for blocks and a disaster
+drawer for the picker. The page never scrolls or zooms, the HUD keeps clear of notches, and first-run
+graphics default to Medium on touch devices (change it in Settings).
+
 See [docs/PLAN.md](docs/PLAN.md) for the architecture, module contracts and work packages.

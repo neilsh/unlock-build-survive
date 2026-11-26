@@ -1,11 +1,19 @@
-import { Play, RotateCcw, Sparkles } from 'lucide-react';
+import { ChevronDown, ChevronUp, Play, RotateCcw, Sparkles } from 'lucide-react';
+import { useState } from 'react';
 import { useMods } from '../mods/modStore';
 import { useUIState } from '../state/store';
-import { DISASTER_ORDER, DISASTER_SECONDS, STRENGTH_ORDER, type Strength } from '../types/blueprint';
+import {
+  DISASTER_ORDER,
+  DISASTER_SECONDS,
+  STRENGTH_ORDER,
+  isBuiltinDisaster,
+  type Strength,
+} from '../types/blueprint';
 import type { GameActions } from '../types/ui';
 import { intToHex } from '../utils/color';
 import { Chip } from './Chip';
 import { DISASTER_META } from './disasterMeta';
+import { useCompactLayout } from './useLayout';
 
 const STRENGTHS: Record<Strength, string> = { gentle: 'Gentle', medium: 'Medium', strong: 'Strong' };
 const GROUP_LABEL = 'text-[11px] font-black uppercase tracking-wide text-sky-800';
@@ -27,6 +35,9 @@ export function DisasterPanel({ actions }: { actions: GameActions }) {
     villageRound: u.villageRound,
   }));
   const { active } = useMods();
+  const compact = useCompactLayout();
+  // Compact (phone) layout: just the countdown + Test button, with the disaster / strength pickers in a drawer.
+  const [pickerOpen, setPickerOpen] = useState(false);
   const building = s.mode === 'build';
   const isSurvival = s.playMode === 'survival' && s.levelId === null;
   const isVillage = s.playMode === 'village' && s.levelId === null;
@@ -65,11 +76,8 @@ export function DisasterPanel({ actions }: { actions: GameActions }) {
     (isSurvival && (s.mode === 'survived' || s.survivalOver)) ||
     (isVillage && (s.villageCleared || s.villageOver));
 
-  return (
-    <section
-      aria-label="Disasters"
-      className="pointer-events-auto flex w-full max-w-4xl flex-wrap items-end justify-center gap-3 rounded-3xl bg-white/85 p-2.5 shadow-xl backdrop-blur"
-    >
+  const pickers = (
+    <>
       <div className="flex flex-col items-center gap-1">
         <span className={GROUP_LABEL}>Disasters</span>
         <div className="flex flex-wrap justify-center gap-2" role="group" aria-label="Pick a disaster">
@@ -116,27 +124,81 @@ export function DisasterPanel({ actions }: { actions: GameActions }) {
           ))}
         </div>
       </div>
+    </>
+  );
 
-      <div className="flex flex-col items-center gap-1">
-        <span className={GROUP_LABEL}>Timer &amp; Test</span>
-        <div className="flex items-center gap-2">
-          <span
-            data-testid="countdown"
-            role="timer"
-            aria-label={`${seconds} seconds`}
-            className="flex h-14 min-w-14 items-center justify-center rounded-full bg-sky-600 px-3 text-2xl font-black tabular-nums text-white shadow-md"
-          >
-            {seconds}
-          </span>
-          <Chip
-            testId="test-disaster"
-            label={actionLabel}
-            icon={isGoVariant ? <Play size={22} fill="currentColor" /> : <RotateCcw size={22} />}
-            variant={isGoVariant ? 'go' : 'rewind'}
-            onClick={() => actions.toggleDisaster()}
-          />
-        </div>
+  const custom = active.disasters.find((d) => d.id === s.disaster);
+  const builtin = isBuiltinDisaster(s.disaster) ? DISASTER_META[s.disaster] : undefined;
+  const currentLabel = builtin?.shortLabel ?? custom?.label ?? 'Disaster';
+
+  const timerAndTest = (
+    <div className="flex flex-col items-center gap-1">
+      <span className={`${GROUP_LABEL} compact:hidden`}>Timer &amp; Test</span>
+      <div className="flex items-center gap-2">
+        <span
+          data-testid="countdown"
+          role="timer"
+          aria-label={`${seconds} seconds`}
+          className="flex h-14 min-w-14 items-center justify-center rounded-full bg-sky-600 px-3 text-2xl font-black tabular-nums text-white shadow-md compact:h-12 compact:min-w-12 compact:text-xl"
+        >
+          {seconds}
+        </span>
+        <Chip
+          testId="test-disaster"
+          label={actionLabel}
+          icon={isGoVariant ? <Play size={22} fill="currentColor" /> : <RotateCcw size={22} />}
+          variant={isGoVariant ? 'go' : 'rewind'}
+          onClick={() => actions.toggleDisaster()}
+        />
       </div>
+    </div>
+  );
+
+  if (compact) {
+    return (
+      <section
+        aria-label="Disasters"
+        className="pointer-events-auto flex max-w-full flex-col items-stretch gap-2 rounded-3xl bg-white/85 p-2 shadow-xl backdrop-blur"
+      >
+        {canPick && pickerOpen && (
+          <div
+            data-testid="disaster-picker"
+            className="ubs-scroll flex max-h-[calc(100dvh-8.5rem)] flex-col items-center gap-2 rounded-2xl bg-sky-50/90 p-2"
+          >
+            {pickers}
+          </div>
+        )}
+        <div className="flex items-center justify-center gap-2">
+          {canPick && (
+            <button
+              type="button"
+              data-testid="disaster-picker-toggle"
+              aria-expanded={pickerOpen}
+              onClick={() => setPickerOpen((o) => !o)}
+              className="flex min-h-12 items-center gap-1.5 rounded-2xl bg-white px-3 text-xs font-extrabold text-sky-900 shadow-md active:scale-95"
+            >
+              {builtin ? builtin.icon(20) : <Sparkles size={20} />}
+              <span>{currentLabel}</span>
+              {pickerOpen ? (
+                <ChevronDown size={16} aria-hidden="true" />
+              ) : (
+                <ChevronUp size={16} aria-hidden="true" />
+              )}
+            </button>
+          )}
+          {timerAndTest}
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section
+      aria-label="Disasters"
+      className="pointer-events-auto flex w-full max-w-4xl flex-wrap items-end justify-center gap-3 rounded-3xl bg-white/85 p-2.5 shadow-xl backdrop-blur"
+    >
+      {pickers}
+      {timerAndTest}
     </section>
   );
 }

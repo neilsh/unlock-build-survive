@@ -529,11 +529,12 @@ export function ShopPanel({
       <button
         type="button"
         data-testid="shop-open"
+        aria-label="Shop"
         onClick={() => setOpen(true)}
         className="pointer-events-auto flex min-h-11 items-center gap-1.5 rounded-2xl bg-white/90 px-3.5 text-sm font-extrabold shadow-md backdrop-blur active:scale-95"
       >
         <ShoppingBag size={20} aria-hidden="true" />
-        <span>Shop</span>
+        <span className="compact:sr-only">Shop</span>
         <span
           data-testid="points-balance"
           className="rounded-full bg-amber-300 px-2 py-0.5 text-xs font-black text-amber-950"

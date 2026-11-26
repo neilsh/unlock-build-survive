@@ -24,7 +24,7 @@ export function VillagePanel() {
     <section
       aria-label="Village status"
       data-testid="village-panel"
-      className="pointer-events-auto flex w-full max-w-xs flex-col gap-1 rounded-3xl bg-white/90 p-3 text-sm shadow-xl backdrop-blur"
+      className="pointer-events-auto flex w-full max-w-xs flex-col gap-1 rounded-3xl bg-white/90 p-3 text-sm shadow-xl backdrop-blur compact:gap-0.5 compact:p-2 compact:text-xs"
     >
       <h2 className="flex items-center gap-1.5 font-black">
         <Home size={16} aria-hidden="true" />
@@ -56,13 +56,13 @@ export function VillagePanel() {
         </p>
       )}
       {s.sandbox && (
-        <p className="text-xs font-semibold text-sky-800">
+        <p className="text-xs font-semibold text-sky-800 compact:hidden">
           Sandbox: everything is unlocked, you pick the disaster, and knocked-out villagers get back up when
           you rewind. Nobody loses.
         </p>
       )}
       {!s.sandbox && s.mode === 'build' && !s.over && (
-        <p className="text-xs font-semibold text-sky-800">
+        <p className="text-xs font-semibold text-sky-800 compact:hidden">
           Build houses: a roof on top and walls on two or more sides. Each house cell shelters 2 villagers. If
           any villager gets knocked out, you lose!
         </p>

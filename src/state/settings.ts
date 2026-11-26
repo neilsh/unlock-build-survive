@@ -1,4 +1,9 @@
-import { DEFAULT_SETTINGS, sanitizeSettings, type AppSettings } from '../types/settings';
+import {
+  DEFAULT_SETTINGS,
+  MOBILE_DEFAULT_SETTINGS,
+  sanitizeSettings,
+  type AppSettings,
+} from '../types/settings';
 import type { StorageLike } from './audioSettings';
 
 export const SETTINGS_KEY = 'disaster-village:settings:v1';
@@ -11,13 +16,31 @@ function defaultStorage(): StorageLike | null {
   }
 }
 
-export function loadSettings(storage: StorageLike | null = defaultStorage()): AppSettings {
+/** True on touch-screen devices (phones and tablets): the primary pointer is coarse. */
+export function isTouchDevice(): boolean {
+  try {
+    return globalThis.matchMedia?.('(pointer: coarse)').matches ?? false;
+  } catch {
+    return false;
+  }
+}
+
+/** The settings a player gets before they change anything: lighter graphics on touch devices. */
+export function deviceDefaultSettings(touch: boolean = isTouchDevice()): AppSettings {
+  return { ...(touch ? MOBILE_DEFAULT_SETTINGS : DEFAULT_SETTINGS) };
+}
+
+/** Stored settings (repaired), or the device defaults when nothing is saved yet. */
+export function loadSettings(
+  storage: StorageLike | null = defaultStorage(),
+  defaults: AppSettings = deviceDefaultSettings(),
+): AppSettings {
   try {
     const raw = storage?.getItem(SETTINGS_KEY);
-    if (!raw) return { ...DEFAULT_SETTINGS };
-    return sanitizeSettings(JSON.parse(raw));
+    if (!raw) return { ...defaults };
+    return sanitizeSettings(JSON.parse(raw), defaults);
   } catch {
-    return { ...DEFAULT_SETTINGS };
+    return { ...defaults };
   }
 }
 
