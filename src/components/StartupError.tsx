@@ -1,4 +1,5 @@
 import { Component, type ReactNode } from 'react';
+import { formatGraphicsReport } from '../utils/graphicsReport';
 import { WebGLUnavailableError } from '../utils/webglUnavailable';
 
 /** Kid-readable headline plus the grown-up detail for a failed start. */
@@ -7,7 +8,7 @@ export function describeStartupError(error: unknown): { headline: string; hint: 
   if (error instanceof WebGLUnavailableError) {
     return {
       headline: "This device can't draw the 3D island",
-      hint: 'Disaster Village needs WebGL. Close other tabs and apps, make sure hardware acceleration is on, update your browser, then reload.',
+      hint: 'Disaster Village needs WebGL. If it worked a moment ago, Chrome may have switched WebGL off after the graphics crashed: close this tab (or restart Chrome) and open the link again. Otherwise close other tabs and apps, update your browser, then reload.',
       detail,
     };
   }
@@ -43,6 +44,12 @@ export function StartupError({ error }: { error: unknown }) {
       >
         {detail}
       </p>
+      <pre
+        data-testid="startup-error-report"
+        className="max-w-md whitespace-pre-wrap break-words text-left text-[11px] text-slate-500 [user-select:text] select-text"
+      >
+        {formatGraphicsReport()}
+      </pre>
     </div>
   );
 }

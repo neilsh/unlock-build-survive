@@ -3,6 +3,7 @@ import { GraphicsProblem } from './components/GraphicsProblem';
 import { HUD } from './components/HUD';
 import { StartupError, StartupErrorBoundary } from './components/StartupError';
 import { installDebugApi } from './engine/debug';
+import { releaseAllRenderers } from './engine/createRenderer';
 import { Game } from './engine/Game';
 import { installMobileGuards } from './utils/mobileGuards';
 
@@ -22,6 +23,7 @@ function GameView() {
     } catch (err) {
       // No WebGL (or any other start-up failure): show a message instead of unmounting into a blank page.
       console.error('Game failed to start', err);
+      releaseAllRenderers();
       el.replaceChildren();
       // oxlint-disable-next-line react/set-state-in-effect -- reporting a failure of the external WebGL context
       setStartupError(err);

@@ -91,3 +91,63 @@ test('a lost graphics context shows a reload prompt, then drawing resumes when i
   await expect(page.getByTestId('main-menu')).toBeVisible();
   expect(errors).toEqual([]);
 });
+
+/** Takes the GL context away from the running game, as a phone's browser can. */
+async function loseContext(page: Page) {
+  await page.evaluate(() => {
+    const canvas = document.querySelector('canvas')!;
+    const gl = canvas.getContext('webgl2') ?? canvas.getContext('webgl');
+    gl!.getExtension('WEBGL_lose_context')!.loseContext();
+  });
+}
+
+test('after a lost context the next load starts in safe mode and the error screens carry a GPU report', async ({
+  page,
+}) => {
+  const errors = watchErrors(page);
+  await page.goto('./');
+  await expect(page.getByTestId('main-menu')).toBeVisible({ timeout: 60_000 });
+  // Lose it right away, like the phone does at startup.
+  await loseContext(page);
+  await expect(page.getByTestId('graphics-problem')).toBeVisible({ timeout: 10_000 });
+  const first = await page.getByTestId('graphics-problem-report').innerText();
+  expect(first).toContain('Contexts created: 1');
+  expect(first).toContain('safe mode: off');
+  expect(first).toContain('Context lost at');
+  expect(first).toMatch(/GPU: \S+/);
+
+  // The "Reload" button: the new page remembers the loss and starts in safe mode, still one context, still drawing.
+  await page.reload();
+  await expect(page.getByTestId('main-menu')).toBeVisible({ timeout: 60_000 });
+  await loseContext(page);
+  await expect(page.getByTestId('graphics-problem')).toBeVisible({ timeout: 10_000 });
+  const second = await page.getByTestId('graphics-problem-report').innerText();
+  expect(second).toContain('safe mode: on');
+  expect(second).toContain('Contexts created: 1');
+  expect(second).toContain('Last time: graphics were lost');
+  expect(errors).toEqual([]);
+});
+
+test('a browser that only allows one WebGL context still gets exactly one from us', async ({ page }) => {
+  await page.addInitScript(() => {
+    const proto = HTMLCanvasElement.prototype as unknown as { getContext: (type: string) => unknown };
+    const original = proto.getContext;
+    const granted = new WeakSet<object>();
+    let canvases = 0;
+    proto.getContext = function (this: HTMLCanvasElement, type: string, ...rest: unknown[]) {
+      if (!(type.startsWith('webgl') || type === 'experimental-webgl')) {
+        return Reflect.apply(original, this, [type, ...rest]);
+      }
+      // Past the browser's limit a second canvas gets no context; asking again on the first canvas still works.
+      if (!granted.has(this)) {
+        if (++canvases > 1) return null;
+        granted.add(this);
+      }
+      return Reflect.apply(original, this, [type, ...rest]);
+    };
+  });
+  await page.goto('./');
+  await expect(page.getByTestId('main-menu')).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByTestId('startup-error')).toHaveCount(0);
+  await expect(page.locator('canvas')).toHaveCount(1);
+});

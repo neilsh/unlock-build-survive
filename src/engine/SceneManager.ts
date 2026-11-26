@@ -11,7 +11,17 @@ import type { Azimuth, DisasterType, ProjectileKind, Vec3 } from '../types/bluep
 import { getIslandSize } from '../types/blueprint';
 import { QUALITY_PROFILES, type GraphicsQuality, type QualityProfile } from '../types/settings';
 import { mulberry32 } from '../utils/rng';
-import { createGameRenderer } from './createRenderer';
+import { createGameRenderer, releaseRenderer } from './createRenderer';
+import {
+  clearCrash,
+  describeCrash,
+  graphicsReport,
+  pageStorage,
+  readCrash,
+  recordCrash,
+  shouldUseSafeMode,
+  STABLE_SECONDS,
+} from '../utils/graphicsReport';
 import { effectivePixelRatio, effectiveShadowMapSize } from './renderBudget';
 import { DisasterEffects, type CustomDisasterFx } from './Effects';
 import { buildIslandScenery, dirtTexture, grassTexture } from './IslandScenery';
@@ -108,6 +118,10 @@ export class SceneManager {
   private splitScreen = false;
   private quality: QualityProfile = QUALITY_PROFILES.high;
   private touch = false;
+  private safe = false;
+  private contextLost = false;
+  private stableMarked = false;
+  private pageStart = performance.now();
   private graphicsListener: ((status: GraphicsStatus) => void) | null = null;
   private failingFrames = 0;
 
@@ -116,7 +130,14 @@ export class SceneManager {
     // Phones: skip MSAA (a big multisampled buffer is what exhausts mobile GPU memory). If the browser refuses
     // the context, createGameRenderer retries with plainer options and finally throws WebGLUnavailableError.
     const touch = window.matchMedia?.('(pointer: coarse)').matches ?? false;
-    const { renderer, canvas } = createGameRenderer(container, touch);
+    // After a lost context (or with ?safe) start in a plain mode: low graphics, no shadows or tone mapping.
+    const storage = pageStorage();
+    this.safe = shouldUseSafeMode(window.location.search, storage, Date.now());
+    graphicsReport.safeMode = this.safe;
+    const crash = readCrash(storage);
+    graphicsReport.previousCrash = crash ? describeCrash(crash, Date.now()) : null;
+    if (this.safe) this.quality = QUALITY_PROFILES.low;
+    const { renderer, canvas } = createGameRenderer(container, touch, this.safe);
     this.renderer = renderer;
     this.domElement = canvas;
     // A lost WebGL context (phone memory pressure, tab switch) must be allowed to come back, otherwise the
@@ -127,7 +148,7 @@ export class SceneManager {
     this.renderer.shadowMap.enabled = this.quality.shadows;
     // PCFSoftShadowMap was removed in recent three; PCF honours shadow.radius for soft edges.
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
-    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMapping = this.safe ? THREE.NoToneMapping : THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.05;
 
     const background = new THREE.Color('#9bdcff');
@@ -180,10 +201,15 @@ export class SceneManager {
 
   private readonly onContextLost = (e: Event): void => {
     e.preventDefault();
+    this.contextLost = true;
+    graphicsReport.lostAtMs = performance.now() - this.pageStart;
+    graphicsReport.lostBeforeFirstFrame = graphicsReport.frames === 0;
+    recordCrash(pageStorage(), graphicsReport.frames, Date.now());
     this.graphicsListener?.('lost');
   };
 
   private readonly onContextRestored = (): void => {
+    this.contextLost = false;
     this.scene.traverse((obj) => {
       if (!(obj instanceof THREE.Mesh)) return;
       const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
@@ -322,8 +348,7 @@ export class SceneManager {
     materials.forEach((m) => m.dispose());
     textures.forEach((t) => t.dispose());
 
-    this.renderer.dispose();
-    this.renderer.forceContextLoss();
+    releaseRenderer(this.renderer);
     this.domElement.remove();
   }
 
@@ -347,6 +372,14 @@ export class SceneManager {
     }
     if (this.failingFrames >= FAILING_FRAMES_BEFORE_NOTICE) this.graphicsListener?.('recovered');
     this.failingFrames = 0;
+    if (!this.contextLost) {
+      graphicsReport.frames++;
+      // Drawing steadily for a while means the graphics are healthy: forget an earlier crash.
+      if (this.time >= STABLE_SECONDS && graphicsReport.frames > 300 && !this.stableMarked) {
+        this.stableMarked = true;
+        clearCrash(pageStorage());
+      }
+    }
   };
 
   private frame(timestamp: number): void {
@@ -420,7 +453,7 @@ export class SceneManager {
 
   /** Applies a graphics quality preset live: pixel ratio cap, shadows on/off and shadow map size. */
   setQuality(level: GraphicsQuality): void {
-    const next = QUALITY_PROFILES[level];
+    const next = QUALITY_PROFILES[this.safe ? 'low' : level];
     const prev = this.quality;
     this.quality = next;
     if (prev.shadows !== next.shadows) {
@@ -448,6 +481,8 @@ export class SceneManager {
       effectivePixelRatio(window.devicePixelRatio, this.quality.maxPixelRatio, w, h, this.touch),
     );
     this.renderer.setSize(w, h, false);
+    graphicsReport.pixelRatio = this.renderer.getPixelRatio();
+    graphicsReport.canvas = `${this.domElement.width}x${this.domElement.height}`;
     this.updateAspects();
   }
 

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useUIState } from '../state/store';
+import { formatGraphicsReport } from '../utils/graphicsReport';
 
 /** Brief hiccups (the GPU hands the context straight back) stay invisible; longer ones get a message. */
 const SHOW_AFTER_MS = 1500;
@@ -31,9 +32,15 @@ export function GraphicsProblem() {
       <h2 className="text-2xl font-bold">The 3D view stopped</h2>
       <p className="max-w-md text-base">
         {problem === 'lost'
-          ? 'Your phone paused the picture (it can do that when the browser is in the background or the phone is busy). It may come back by itself. If it does not, reload.'
+          ? 'Your phone paused the picture (it can do that when the browser is in the background or the phone is busy). It may come back by itself. If it does not, reload (the game then starts in a plainer graphics mode). If Reload shows an error, close this tab or restart Chrome.'
           : 'The picture got stuck. Reloading usually fixes it.'}
       </p>
+      <pre
+        data-testid="graphics-problem-report"
+        className="max-w-md whitespace-pre-wrap break-words text-left text-[11px] text-slate-500 [user-select:text] select-text"
+      >
+        {formatGraphicsReport()}
+      </pre>
       <button
         type="button"
         data-testid="graphics-problem-reload"
