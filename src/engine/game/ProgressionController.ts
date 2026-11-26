@@ -285,6 +285,6 @@ export class ProgressionController {
 
   private isCreativeSandboxNow(): boolean {
     const s = uiStore.getState();
-    return s.playMode === 'creative' && s.levelId === null;
+    return (s.playMode === 'creative' || s.playMode === 'villageCreative') && s.levelId === null;
   }
 }

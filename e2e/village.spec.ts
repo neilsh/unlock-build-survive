@@ -116,4 +116,30 @@ test.describe('village island', () => {
     expect(await place(13)).toBe(false);
     expect(await place(7)).toBe(true);
   });
+
+  test('Village Creative: everything unlocked, no block limit, any disaster, nobody loses', async ({
+    page,
+  }) => {
+    await openGame(page);
+    await page.getByTestId('menu-village-creative').click();
+    await expect(page.getByTestId('village-panel')).toContainText('Village Creative');
+    await expect(page.getByTestId('village-villagers')).toContainText('6 / 6');
+    await expect(page.getByTestId('block-count')).toBeHidden();
+    await expect(page.getByTestId('material-diamond')).toBeEnabled();
+    await expect(page.getByTestId('disaster-meteor')).toBeEnabled();
+    expect(await page.evaluate(() => window.__GAME_DEBUG__!.placeBlock(13, 0, 13, 'wood'))).toBe(true);
+
+    // No shelter at all and a strong storm: villagers get knocked out, but the village is not lost.
+    await page.getByTestId('disaster-hurricane').click();
+    await page.getByTestId('strength-strong').click();
+    await page.getByTestId('test-disaster').click();
+    await page.waitForFunction(() => window.__GAME_DEBUG__!.getTelemetry().mode === 'simulating', null, {
+      timeout: 30_000,
+    });
+    await page.evaluate(() => window.__GAME_DEBUG__!.advance(12));
+    await expect(page.getByTestId('village-over-banner')).toBeHidden();
+    await expect(page.getByTestId('village-cleared-banner')).toBeHidden();
+    await page.getByTestId('test-disaster').click(); // rewind
+    await expect(page.getByTestId('village-villagers')).toContainText('6 / 6');
+  });
 });

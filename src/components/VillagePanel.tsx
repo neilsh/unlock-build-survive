@@ -14,9 +14,10 @@ export function VillagePanel() {
     over: u.villageOver,
     population: u.villagePopulation,
     round: u.villageRound,
+    sandbox: u.playMode === 'villageCreative',
   }));
   const info = useLevelInfo();
-  const max = VILLAGE_CONSTRAINTS.maxBlocks;
+  const max = s.sandbox ? undefined : VILLAGE_CONSTRAINTS.maxBlocks;
   const needBeds = s.beds < s.population;
   return (
     <section
@@ -26,12 +27,12 @@ export function VillagePanel() {
     >
       <h2 className="flex items-center gap-1.5 font-black">
         <Home size={16} aria-hidden="true" />
-        Village Island · Round {s.round}
-        {s.best > 0 && <span className="text-xs font-bold text-sky-700"> · Best {s.best}</span>}
+        {s.sandbox ? 'Village Creative' : `Village Island · Round ${s.round}`}
+        {!s.sandbox && s.best > 0 && <span className="text-xs font-bold text-sky-700"> · Best {s.best}</span>}
       </h2>
       <p data-testid="village-villagers" className="flex items-center gap-1.5 font-extrabold">
         <Users size={15} aria-hidden="true" />
-        Villagers safe: {s.alive} / {s.population}
+        {s.sandbox ? 'Villagers up' : 'Villagers safe'}: {s.alive} / {s.population}
       </p>
       <p data-testid="village-beds" className={`font-bold ${needBeds ? 'text-orange-600' : 'text-sky-900'}`}>
         Shelter beds: {s.beds}
@@ -47,7 +48,13 @@ export function VillagePanel() {
           {info.notice}
         </p>
       )}
-      {s.mode === 'build' && !s.over && (
+      {s.sandbox && (
+        <p className="text-xs font-semibold text-sky-800">
+          Sandbox: everything is unlocked, you pick the disaster, and knocked-out villagers get back up when
+          you rewind. Nobody loses.
+        </p>
+      )}
+      {!s.sandbox && s.mode === 'build' && !s.over && (
         <p className="text-xs font-semibold text-sky-800">
           Build houses: a roof on top and walls on two or more sides. Each house cell shelters 2 villagers. If
           any villager gets knocked out, you lose!

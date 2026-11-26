@@ -6,7 +6,7 @@ import { useMods } from '../mods/modStore';
 import { useUIState } from '../state/store';
 import type { BuiltinMaterialType, ToolType } from '../types/blueprint';
 import { BASE_MATERIALS, MATERIALS, UNLOCKABLE_MATERIALS } from '../types/materials';
-import type { GameActions } from '../types/ui';
+import { isSandboxPlayMode, type GameActions } from '../types/ui';
 import { Chip, Swatch } from './Chip';
 
 const TOOLS: Array<{ id: ToolType; label: string; icon: ReactNode }> = [
@@ -32,7 +32,7 @@ export function P2Panel({ actions }: { actions: GameActions }) {
   }));
   const { active } = useMods();
   const level = s.levelId ? getLevel(s.levelId) : undefined;
-  const creativeSandbox = s.hasStarted && s.playMode === 'creative' && s.levelId === null;
+  const creativeSandbox = s.hasStarted && isSandboxPlayMode(s.playMode) && s.levelId === null;
   const hpPct = Math.max(0, Math.min(100, (s.p2Hp / s.p2MaxHp) * 100));
   const hpColor = hpPct > 60 ? 'bg-emerald-500' : hpPct > 30 ? 'bg-amber-400' : 'bg-rose-500';
   const building = s.mode === 'build' && !s.exploreMode;

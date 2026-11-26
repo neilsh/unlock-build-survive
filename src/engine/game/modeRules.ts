@@ -8,7 +8,7 @@ import { MATERIAL_ORDER } from '../../types/materials';
 
 export function isCreativeSandbox(): boolean {
   const s = uiStore.getState();
-  return s.playMode === 'creative' && s.levelId === null;
+  return (s.playMode === 'creative' || s.playMode === 'villageCreative') && s.levelId === null;
 }
 
 export function isVillageMode(): boolean {

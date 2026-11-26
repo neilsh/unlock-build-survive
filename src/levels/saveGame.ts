@@ -143,7 +143,8 @@ export function loadGameState(storage: StorageLike | null = defaultStorage()): S
     const parsed: unknown = JSON.parse(raw);
     const obj = asFieldMap(parsed);
     if (!obj) return null;
-    const isVillage = obj.get('playMode') === 'village';
+    const rawMode = obj.get('playMode');
+    const isVillage = rawMode === 'village' || rawMode === 'villageCreative';
     // Village Island saves use the big island, so check the build against that size.
     const previousCells = getGridCells();
     setIslandCells(isVillage ? VILLAGE_GRID_CELLS : GRID_CELLS);
@@ -162,7 +163,13 @@ export function loadGameState(storage: StorageLike | null = defaultStorage()): S
       version: 1,
       savedAt: typeof savedAt === 'number' && Number.isFinite(savedAt) ? savedAt : 0,
       graph,
-      playMode: isVillage ? 'village' : obj.get('playMode') === 'survival' ? 'survival' : 'creative',
+      playMode: isVillage
+        ? rawMode === 'villageCreative'
+          ? 'villageCreative'
+          : 'village'
+        : obj.get('playMode') === 'survival'
+          ? 'survival'
+          : 'creative',
       exploreMode: obj.get('exploreMode') === true,
       moonGravity: obj.get('moonGravity') === true,
       turboMode: obj.get('turboMode') === true,

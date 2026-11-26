@@ -28,7 +28,7 @@ import { useUIState } from '../state/store';
 import { type BuiltinMaterialType, type PresetName, type ToolType } from '../types/blueprint';
 import { BASE_MATERIALS, MATERIALS, UNLOCKABLE_MATERIALS } from '../types/materials';
 import { PRESET_DEFS, PRESET_ORDER } from '../types/presets';
-import type { GameActions } from '../types/ui';
+import { isSandboxPlayMode, type GameActions } from '../types/ui';
 import { Chip, Swatch } from './Chip';
 
 const TOOLS: Array<{ id: ToolType; label: string; icon: ReactNode }> = [
@@ -71,7 +71,7 @@ export function BuildPanel({ actions }: { actions: GameActions }) {
   const { active } = useMods();
   // A challenge level greys out materials it does not allow and the presets (they would skip its limits).
   const level = s.levelId ? getLevel(s.levelId) : undefined;
-  const creativeSandbox = s.hasStarted && s.playMode === 'creative' && s.levelId === null;
+  const creativeSandbox = s.hasStarted && isSandboxPlayMode(s.playMode) && s.levelId === null;
   if (s.exploreMode) {
     return (
       <section

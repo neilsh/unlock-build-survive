@@ -33,7 +33,7 @@ import { useEffect, useState } from 'react';
 import { useLevelInfo } from '../levels/levelStore';
 import { useUIState } from '../state/store';
 import { ARMORS, WEAPONS } from '../types/gear';
-import { isTwoPlayerCoop, type GameActions } from '../types/ui';
+import { isSandboxPlayMode, isTwoPlayerCoop, isVillagePlayMode, type GameActions } from '../types/ui';
 import { Banners } from './Banners';
 import { BuildPanel } from './BuildPanel';
 import { CameraPanel } from './CameraPanel';
@@ -84,9 +84,9 @@ export function HUD({ actions }: { actions: GameActions }) {
   }, [actions, levelsOpen, shopOpen, s.menuOpen, s.hasStarted]);
 
   const split = s.multiplayerMode === 'split';
-  const isVillage = s.playMode === 'village' && s.levelId === null;
+  const isVillage = isVillagePlayMode(s.playMode) && s.levelId === null;
   const isSurvival = s.playMode === 'survival' && s.levelId === null;
-  const creativeSandbox = s.playMode === 'creative' && s.levelId === null;
+  const creativeSandbox = isSandboxPlayMode(s.playMode) && s.levelId === null;
   const hpPct = Math.max(0, Math.min(100, (s.playerHp / s.playerMaxHp) * 100));
   const hpColor = hpPct > 60 ? 'bg-emerald-500' : hpPct > 30 ? 'bg-amber-400' : 'bg-rose-500';
 
@@ -173,7 +173,9 @@ export function HUD({ actions }: { actions: GameActions }) {
         >
           Mode:{' '}
           {isVillage
-            ? `Village Island · Round ${s.villageRound}`
+            ? s.playMode === 'villageCreative'
+              ? 'Village Creative'
+              : `Village Island · Round ${s.villageRound}`
             : isSurvival
               ? `Survival · Wave ${s.survivalWave}${s.survivalBestWave > 0 ? ` · Best ${s.survivalBestWave}` : ''}`
               : s.levelId !== null

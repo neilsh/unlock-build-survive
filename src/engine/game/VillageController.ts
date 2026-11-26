@@ -1,4 +1,3 @@
-uiStore.setState({ villageCleared: false });
 /**
  * Village Island round flow: owns the villager sim, mirrors it into the UI store, and decides when a
  * round is cleared (every villager got through) or lost (any villager is knocked out).
@@ -6,6 +5,7 @@ uiStore.setState({ villageCleared: false });
  */
 import {
   MAX_POPULATION,
+  SANDBOX_POPULATION,
   START_POPULATION,
   VILLAGE_CONSTRAINTS,
   getVillageRound,
@@ -37,6 +37,8 @@ export class VillageController {
   private running = false;
   private time = 0;
   private lastSignature = '';
+  /** Village Creative: nobody loses, rounds are off, and knocked-out villagers stand back up on rewind. */
+  private sandbox = false;
 
   constructor(private readonly d: VillageDeps) {}
 
@@ -53,7 +55,8 @@ export class VillageController {
   }
 
   /** Begins a fresh village at round `round` (the island must already be switched to Village size). */
-  enter(round = 1, population = START_POPULATION): void {
+  enter(round = 1, population = START_POPULATION, sandbox = false): void {
+    this.sandbox = sandbox;
     this.active = true;
     this.running = false;
     this.sim.setStructure(this.d.getGraph());
@@ -104,7 +107,8 @@ export class VillageController {
     const wasRunning = this.running;
     this.running = false;
     this.sim.endDisaster();
-    if (wasRunning || !uiStore.getState().villageOver) this.sim.restoreAll();
+    if (this.sandbox || wasRunning || !uiStore.getState().villageOver) this.sim.restoreAll();
+    uiStore.setState({ villageCleared: false });
     this.sim.setStructure(this.d.getGraph());
     this.publish(true);
   }
@@ -129,7 +133,7 @@ export class VillageController {
     this.d.view.sync(this.sim.getVillagers(), this.d.getViewers(), this.time);
     this.publish(false);
     const dead = this.sim.firstDead();
-    if (this.running && dead) {
+    if (this.running && dead && !this.sandbox) {
       this.running = false;
       this.sim.endDisaster();
       uiStore.setState({
@@ -146,6 +150,7 @@ export class VillageController {
     if (!this.active || !this.running) return;
     this.running = false;
     this.sim.endDisaster();
+    if (this.sandbox) return;
     const s = uiStore.getState();
     const best = Math.max(s.villageBestRound, s.villageRound);
     saveVillageBest(best);
@@ -175,7 +180,7 @@ export class VillageController {
 
   /** Starts over from round 1 with the starting population (the build is kept). */
   restart(): void {
-    this.enter(1, START_POPULATION);
+    this.enter(1, this.sandbox ? SANDBOX_POPULATION : START_POPULATION, this.sandbox);
   }
 
   /** Mirrors counts into the store, only touching it when something changed. */

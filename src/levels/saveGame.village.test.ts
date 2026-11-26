@@ -45,6 +45,15 @@ describe('saved village games', () => {
     expect(getGridCells()).toBe(GRID_CELLS); // loading must not leave the island switched
   });
 
+  it('keeps Village Creative saves on the big island too', () => {
+    const storage = memory();
+    saveGameState(base({ playMode: 'villageCreative', villageRound: undefined }), storage);
+    const loaded = loadGameState(storage);
+    expect(loaded?.playMode).toBe('villageCreative');
+    expect(loaded?.graph.blocks).toHaveLength(1);
+    expect(getGridCells()).toBe(GRID_CELLS);
+  });
+
   it('still drops out-of-bounds blocks from ordinary saves', () => {
     const storage = memory();
     saveGameState(

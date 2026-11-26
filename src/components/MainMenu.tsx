@@ -116,10 +116,10 @@ export function MainMenu({ actions, onOpenChallenges, onOpenShop }: MainMenuProp
     <div
       data-testid="main-menu"
       aria-label="Main Menu"
-      className={`pointer-events-auto fixed inset-0 z-20 flex items-center justify-center overflow-y-auto p-4 ${s.hasStarted ? 'bg-sky-950/45 backdrop-blur-sm' : ''}`}
+      className={`pointer-events-auto fixed inset-0 z-20 flex overflow-y-auto p-4 ${s.hasStarted ? 'bg-sky-950/45 backdrop-blur-sm' : ''}`}
     >
       {!s.hasStarted && <MenuBackdrop />}
-      <div className="relative flex w-full max-w-3xl flex-col gap-4 rounded-3xl bg-sky-50/95 p-6 text-sky-950 shadow-2xl ring-2 ring-white/80">
+      <div className="relative m-auto flex w-full max-w-3xl flex-col gap-4 rounded-3xl bg-sky-50/95 p-6 text-sky-950 shadow-2xl ring-2 ring-white/80">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <div className="flex flex-wrap items-baseline gap-2.5">
@@ -417,7 +417,7 @@ export function MainMenu({ actions, onOpenChallenges, onOpenShop }: MainMenuProp
 
         <div className="flex flex-col gap-1.5">
           <span className="text-xs font-black uppercase tracking-wide text-sky-800">
-            Play Village (big island, villagers, lose if one is knocked out)
+            Play Village (big island with villagers)
           </span>
           <div data-testid="modes-village" className="grid gap-3 sm:grid-cols-2">
             <button
@@ -450,6 +450,37 @@ export function MainMenu({ actions, onOpenChallenges, onOpenShop }: MainMenuProp
               </div>
               <span className="inline-flex w-fit items-center gap-1.5 rounded-2xl bg-emerald-500 px-4 py-2 text-sm font-black text-white shadow-sm">
                 Play Village
+              </span>
+            </button>
+
+            <button
+              type="button"
+              data-testid="menu-village-creative"
+              onClick={() => actions.startPlayMode('villageCreative')}
+              className={`group flex flex-col justify-between gap-3 rounded-3xl p-5 text-left shadow-lg transition hover:-translate-y-0.5 active:scale-[0.98] ${
+                s.hasStarted && s.playMode === 'villageCreative'
+                  ? 'bg-teal-100 ring-2 ring-teal-400'
+                  : 'bg-white hover:bg-teal-50'
+              }`}
+            >
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="flex size-12 items-center justify-center rounded-2xl bg-teal-400 text-teal-950 shadow-sm">
+                    <Hammer size={24} aria-hidden="true" />
+                  </span>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-teal-100 px-3 py-1 text-xs font-black text-teal-950">
+                    <Sparkles size={13} aria-hidden="true" />
+                    All Unlocked
+                  </span>
+                </div>
+                <h2 className="text-xl font-black">Village Creative</h2>
+                <p className="text-sm font-semibold text-sky-900">
+                  The big village island as a sandbox: every block unlocked, no block limit, and you pick the
+                  disaster. Villagers get knocked out but nobody loses.
+                </p>
+              </div>
+              <span className="inline-flex w-fit items-center gap-1.5 rounded-2xl bg-teal-400 px-4 py-2 text-sm font-black text-teal-950 shadow-sm">
+                Play Village Creative
               </span>
             </button>
           </div>

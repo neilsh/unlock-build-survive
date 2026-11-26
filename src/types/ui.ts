@@ -11,7 +11,13 @@ import type {
 import type { ArmorId, GearId, GearSlot, WeaponId } from './gear';
 import type { GameMod } from '../mods/mods';
 
-export type PlayMode = 'creative' | 'survival' | 'village';
+export type PlayMode = 'creative' | 'survival' | 'village' | 'villageCreative';
+
+/** Both Village Island modes (rounds, or the Village Creative sandbox) use the big island and villagers. */
+export const isVillagePlayMode = (m: PlayMode): boolean => m === 'village' || m === 'villageCreative';
+
+/** Modes where every block, gear and quick-builder is free (no shop unlocks needed). */
+export const isSandboxPlayMode = (m: PlayMode): boolean => m === 'creative' || m === 'villageCreative';
 export type MultiplayerMode = 'solo' | 'coop' | 'split' | 'battle' | 'bot';
 
 /** Modes where a second human drives the Player 2 avatar (shared screen `coop`, or own view `split`). */

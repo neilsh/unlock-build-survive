@@ -13,6 +13,7 @@ import {
 } from '../../types/blueprint';
 import type { VillagerView } from '../village/VillagerAvatars';
 import { SessionController } from './SessionController';
+import { isCreativeSandbox } from './modeRules';
 import { VillageController } from './VillageController';
 
 const memory = new Map<string, string>();
@@ -175,6 +176,23 @@ describe('VillageController', () => {
     expect(uiStore.getState()).toMatchObject({ villageRound: 1, villagePopulation: START_POPULATION });
   });
 
+  it('sandbox: nobody loses, rounds are off, and rewind stands knocked-out villagers back up', () => {
+    const { c } = make([]);
+    c.enter(1, 2, true);
+    c.onDisasterStarted('strong');
+    expect(runFor(c, 10)).toBe(false);
+    expect(c.getSim().firstDead()).not.toBeNull();
+    expect(uiStore.getState().villageOver).toBe(false);
+    c.onRunFinished();
+    expect(uiStore.getState().villageCleared).toBe(false);
+    expect(memory.has('disaster-village:village:v1')).toBe(false);
+    c.onRewind();
+    expect(c.getSim().firstDead()).toBeNull();
+    expect(uiStore.getState().villageAlive).toBe(2);
+    c.restart();
+    expect(uiStore.getState().villagePopulation).toBe(6);
+  });
+
   it('does nothing while inactive and hides villagers on leave', () => {
     const { c, view } = make();
     expect(c.tick(1)).toBe(false);
@@ -229,6 +247,22 @@ describe('SessionController village flow', () => {
       menuOpen: false,
       villageRound: 1,
     });
+  });
+
+  it('startPlayMode(villageCreative) is a limitless sandbox on the big island', () => {
+    setIslandCells(GRID_CELLS);
+    const { deps, c, s } = makeSession();
+    s.startPlayMode('villageCreative');
+    expect(getGridCells()).toBe(VILLAGE_GRID_CELLS);
+    expect(deps.build.setConstraints).toHaveBeenLastCalledWith(null);
+    expect(c.isActive()).toBe(true);
+    expect(uiStore.getState()).toMatchObject({
+      playMode: 'villageCreative',
+      levelId: null,
+      hasStarted: true,
+    });
+    expect(isCreativeSandbox()).toBe(true);
+    expect(uiStore.getState().villagePopulation).toBe(6);
   });
 
   it('leaving village for survival, a level or the menu restores the 8x8 island and clears the build', () => {

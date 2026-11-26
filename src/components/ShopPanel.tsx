@@ -18,7 +18,7 @@ import { type BuiltinMaterialType, type UnlockablePresetName } from '../types/bl
 import { MATERIALS, UNLOCKABLE_MATERIALS, type MaterialDef } from '../types/materials';
 import { PRESET_DEFS, UNLOCKABLE_PRESETS } from '../types/presets';
 import { GEAR, GEAR_ORDER, type GearDef, type GearId } from '../types/gear';
-import type { GameActions } from '../types/ui';
+import { isSandboxPlayMode, type GameActions } from '../types/ui';
 import { intToHex } from '../utils/color';
 import { Swatch } from './Chip';
 import { Modal } from './Modal';
@@ -197,7 +197,7 @@ function GearCard({
 function ShopModal({ actions, onClose }: { actions: GameActions; onClose: () => void }) {
   const ui = useUIState();
   const [filter, setFilter] = useState<ShopFilter>('all');
-  const creativeFree = ui.hasStarted && ui.playMode === 'creative' && ui.levelId === null && !ui.menuOpen;
+  const creativeFree = ui.hasStarted && isSandboxPlayMode(ui.playMode) && ui.levelId === null && !ui.menuOpen;
   const ownedMaterials = UNLOCKABLE_MATERIALS.filter((m) => ui.unlockedMaterials.includes(m)).length;
   const ownedGear = GEAR_ORDER.filter((g) => ui.unlockedGear.includes(g)).length;
   const ownedPresets = UNLOCKABLE_PRESETS.filter((p) => ui.unlockedPresets.includes(p)).length;

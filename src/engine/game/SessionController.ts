@@ -19,10 +19,11 @@ import {
   type BlueprintGraph,
   type Vec3,
 } from '../../types/blueprint';
-import { VILLAGE_CONSTRAINTS, getVillageRound } from '../../levels/village';
+import { SANDBOX_POPULATION, VILLAGE_CONSTRAINTS, getVillageRound } from '../../levels/village';
 import { isBuiltinMaterial } from '../../types/materials';
 import {
   isTwoPlayerCoop,
+  isVillagePlayMode,
   type AddonId,
   type GameActions,
   type MultiplayerMode,
@@ -37,7 +38,7 @@ import type { ProgressionController } from './ProgressionController';
 
 /** What the session needs from the Village Island controller (optional so headless fakes can omit it). */
 export interface VillageHooks {
-  enter(round?: number, population?: number): void;
+  enter(round?: number, population?: number, sandbox?: boolean): void;
   leave(): void;
 }
 
@@ -122,13 +123,18 @@ export class SessionController {
   }
 
   /** Switches to the big island with the village build limits and starts the villagers. */
-  private enterVillage(graph: BlueprintGraph | null, round: number, population?: number): void {
+  private enterVillage(
+    graph: BlueprintGraph | null,
+    round: number,
+    population?: number,
+    sandbox = false,
+  ): void {
     this.d.setIsland?.(VILLAGE_GRID_CELLS);
     this.d.build.setConstraints(null);
     this.d.build.loadGraph(graph ?? emptyGraph());
-    this.d.build.setConstraints(VILLAGE_CONSTRAINTS);
+    this.d.build.setConstraints(sandbox ? null : VILLAGE_CONSTRAINTS);
     uiStore.setState({ villageOver: false, villageFailReason: null, villageCleared: false });
-    this.d.village?.enter(round, population);
+    this.d.village?.enter(round, population, sandbox);
   }
 
   /** Starts a challenge level (fresh island, its limits, disaster and strength) or free build with null. */
@@ -299,8 +305,13 @@ export class SessionController {
       return;
     }
     this.d.ensureBuildMode();
-    if (saved.playMode === 'village') {
-      this.enterVillage(saved.graph, saved.villageRound ?? 1, saved.villagePopulation);
+    if (isVillagePlayMode(saved.playMode)) {
+      this.enterVillage(
+        saved.graph,
+        saved.villageRound ?? 1,
+        saved.villagePopulation,
+        saved.playMode === 'villageCreative',
+      );
     } else {
       this.restoreDefaultIsland();
       this.d.build.setConstraints(null);
@@ -401,8 +412,8 @@ export class SessionController {
 
   startPlayMode: GameActions['startPlayMode'] = (mode: PlayMode) => {
     this.d.ensureBuildMode();
-    if (mode === 'village') {
-      this.startVillage();
+    if (isVillagePlayMode(mode)) {
+      this.startVillage(mode === 'villageCreative');
       return;
     }
     this.restoreDefaultIsland();
@@ -459,12 +470,12 @@ export class SessionController {
   };
 
   /** Village Island: a fresh, empty big island with the first round queued up. */
-  private startVillage(): void {
+  private startVillage(sandbox: boolean): void {
     levelStore.setState({ notice: null, justUnlocked: null });
     const s0 = uiStore.getState();
-    this.enterVillage(null, 1);
+    this.enterVillage(null, 1, sandbox ? SANDBOX_POPULATION : undefined, sandbox);
     let nextMaterial = s0.material;
-    if (!isBuiltinMaterial(nextMaterial) || !s0.unlockedMaterials.includes(nextMaterial)) {
+    if (!isBuiltinMaterial(nextMaterial) || (!sandbox && !s0.unlockedMaterials.includes(nextMaterial))) {
       nextMaterial = 'wood';
     }
     this.d.build.setMaterial(nextMaterial);
@@ -475,15 +486,14 @@ export class SessionController {
     const playerMaxHp = this.d.progression.computeMaxHp(nextArmor);
     const round = getVillageRound(1);
     uiStore.setState({
-      playMode: 'village',
+      playMode: sandbox ? 'villageCreative' : 'village',
       levelId: null,
       menuOpen: false,
       hasStarted: true,
       survivalOver: false,
       survivalFailReason: null,
       survivalLastReward: 0,
-      disaster: round.disaster,
-      strength: round.strength,
+      ...(sandbox ? {} : { disaster: round.disaster, strength: round.strength }),
       material: nextMaterial,
       equippedArmor: nextArmor,
       equippedWeapon: nextWeapon,

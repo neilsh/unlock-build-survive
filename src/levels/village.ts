@@ -15,6 +15,8 @@ export const VILLAGE_CONSTRAINTS: BuildConstraints = { maxBlocks: 90 };
 export const VILLAGER_MAX_HP = 100;
 export const START_POPULATION = 3;
 export const MAX_POPULATION = 12;
+/** Villagers living on the Village Creative sandbox island. */
+export const SANDBOX_POPULATION = 6;
 export const BEDS_PER_SHELTER = 2;
 /** Villagers get this long after the disaster starts to reach a shelter before exposure bites. */
 export const EXPOSURE_GRACE_SECONDS = 3.5;
