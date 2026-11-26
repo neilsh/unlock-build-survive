@@ -138,9 +138,9 @@ test.describe('animal helper blocks', () => {
     });
     await openGame(page);
     await page.getByTestId('menu-creative').click(); // Creative unlocks every block
-    for (const m of ['beaver', 'owl', 'spider']) {
-      await expect(page.getByTestId(`material-${m}`)).toBeEnabled();
-    }
+    await Promise.all(
+      ['beaver', 'owl', 'spider'].map((m) => expect(page.getByTestId(`material-${m}`)).toBeEnabled()),
+    );
     await page.getByTestId('material-beaver').click();
 
     const placed = await page.evaluate(() => {
