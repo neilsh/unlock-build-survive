@@ -1,3 +1,5 @@
+A game created by my 8-year-old, with assistance from Google Antigravity and Claude.
+
 # Disaster Village
 
 A kid-friendly 3D structural engineering game. Build toy-block villages on a floating island,
