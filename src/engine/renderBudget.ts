@@ -1,5 +1,3 @@
-import type { GraphicsQuality } from '../types/settings';
-
 /** Pure render-size limits (no WebGL), so phones never get a drawing buffer or shadow map their GPU cannot hold. */
 
 /** Most drawing-buffer pixels we ask for: tight on phones (memory pressure loses the GL context), generous on desktop. */
@@ -26,9 +24,4 @@ export function effectivePixelRatio(
 
 export function effectiveShadowMapSize(size: number, touch: boolean): number {
   return touch ? Math.min(size, TOUCH_MAX_SHADOW_MAP) : size;
-}
-
-/** One step lighter graphics, used after a lost GL context on a phone. `low` stays `low`. */
-export function lowerQuality(q: GraphicsQuality): GraphicsQuality {
-  return q === 'high' ? 'medium' : 'low';
 }

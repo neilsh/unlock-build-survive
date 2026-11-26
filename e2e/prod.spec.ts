@@ -47,18 +47,29 @@ test('never a blank page: if the game script fails to load a message appears', a
   await expect(page.locator('#ubs-boot-error')).toBeVisible({ timeout: 15_000 });
 });
 
-test('a lost graphics context shows a reload prompt, recovers, and lowers graphics on the phone', async ({
+test('a lost graphics context shows a reload prompt, then drawing resumes when it comes back', async ({
   page,
 }) => {
   const errors = watchErrors(page);
+  // Count real draw calls so "recovered" means pixels are being drawn again, not just that a message went away.
+  await page.addInitScript(() => {
+    const w = window as unknown as { draws: number };
+    w.draws = 0;
+    const proto = WebGL2RenderingContext.prototype;
+    for (const name of ['drawElements', 'drawArrays', 'drawElementsInstanced'] as const) {
+      const original = proto[name] as (...a: unknown[]) => void;
+      (proto as unknown as Record<string, unknown>)[name] = function (this: unknown, ...a: unknown[]) {
+        w.draws++;
+        return original.apply(this, a);
+      };
+    }
+  });
   await page.goto('./');
   await expect(page.getByTestId('main-menu')).toBeVisible({ timeout: 60_000 });
-  const before = await page.evaluate(() =>
-    JSON.parse(localStorage.getItem('disaster-village:settings:v1') ?? '{}'),
-  );
-  expect(before.quality ?? 'medium').toBe('medium');
+  const draws = () => page.evaluate(() => (window as unknown as { draws: number }).draws);
+  await expect.poll(draws, { timeout: 30_000 }).toBeGreaterThan(0);
 
-  // Simulate the phone dropping the GL context (memory pressure).
+  // Simulate the phone taking the GL context away.
   await page.evaluate(() => {
     const canvas = document.querySelector('canvas')!;
     const gl = canvas.getContext('webgl2') ?? canvas.getContext('webgl');
@@ -70,15 +81,13 @@ test('a lost graphics context shows a reload prompt, recovers, and lowers graphi
   await expect(page.getByTestId('graphics-problem')).toBeVisible({ timeout: 10_000 });
   await expect(page.getByTestId('graphics-problem-reload')).toBeVisible();
 
-  // The browser hands the context back: the message goes away and graphics drop a step.
+  // The browser hands the context back: the message goes away and frames are drawn again.
+  const drawsWhileLost = await draws();
   await page.evaluate(() => {
     (window as unknown as { loseCtxHandle: { restoreContext(): void } }).loseCtxHandle.restoreContext();
   });
   await expect(page.getByTestId('graphics-problem')).toBeHidden({ timeout: 10_000 });
+  await expect.poll(draws, { timeout: 15_000 }).toBeGreaterThan(drawsWhileLost + 20);
   await expect(page.getByTestId('main-menu')).toBeVisible();
-  const after = await page.evaluate(() =>
-    JSON.parse(localStorage.getItem('disaster-village:settings:v1') ?? '{}'),
-  );
-  expect(after.quality).toBe('low');
   expect(errors).toEqual([]);
 });

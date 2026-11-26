@@ -31,7 +31,7 @@ export function GraphicsProblem() {
       <h2 className="text-2xl font-bold">The 3D view stopped</h2>
       <p className="max-w-md text-base">
         {problem === 'lost'
-          ? 'Your device ran low on graphics memory and paused the picture. It may come back by itself. If it does not, reload.'
+          ? 'Your phone paused the picture (it can do that when the browser is in the background or the phone is busy). It may come back by itself. If it does not, reload.'
           : 'The picture got stuck. Reloading usually fixes it.'}
       </p>
       <button

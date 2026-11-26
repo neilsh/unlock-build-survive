@@ -44,10 +44,9 @@ import { disasterAddonSimOptions } from '../types/addons';
 import { ProceduralAssets } from './ProceduralAssets';
 import { AudioSynth } from './AudioSynth';
 import { DEFAULT_AUDIO_SETTINGS, loadAudioSettings, saveAudioSettings } from '../state/audioSettings';
-import { deviceDefaultSettings, isTouchDevice, loadSettings, saveSettings } from '../state/settings';
+import { deviceDefaultSettings, loadSettings, saveSettings } from '../state/settings';
 import { sanitizeSettings, type AppSettings } from '../types/settings';
 import { SceneManager } from './SceneManager';
-import { lowerQuality } from './renderBudget';
 import { CombatController } from './game/CombatController';
 import { InputRouter } from './game/InputRouter';
 import {
@@ -314,18 +313,13 @@ export class Game implements GameActions, GameDebugApi {
     uiStore.setState({ settings });
   }
 
-  /** A lost GL context or a stuck frame loop: tell the UI, and on a phone drop one quality step so it is less likely to repeat. */
+  /** A lost GL context or a stuck frame loop: tell the UI (it clears again when drawing resumes). */
   private onGraphicsStatus(status: GraphicsStatus) {
     if (status === 'lost' || status === 'failing') {
       uiStore.setState({ graphicsProblem: status });
       return;
     }
     uiStore.setState({ graphicsProblem: 'none' });
-    if (status === 'restored' && isTouchDevice()) {
-      const { settings } = uiStore.getState();
-      const lower = lowerQuality(settings.quality);
-      if (lower !== settings.quality) this.updateSettings({ quality: lower });
-    }
   }
 
   private saveAudio() {

@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
   effectivePixelRatio,
   effectiveShadowMapSize,
-  lowerQuality,
   MAX_BUFFER_PIXELS,
   TOUCH_MAX_SHADOW_MAP,
 } from './renderBudget';
@@ -25,16 +24,10 @@ describe('effectivePixelRatio', () => {
   });
 });
 
-describe('shadow map and quality steps', () => {
+describe('shadow map cap', () => {
   it('caps shadow maps on phones only', () => {
     expect(effectiveShadowMapSize(2048, true)).toBe(TOUCH_MAX_SHADOW_MAP);
     expect(effectiveShadowMapSize(2048, false)).toBe(2048);
     expect(effectiveShadowMapSize(512, true)).toBe(512);
-  });
-
-  it('steps graphics down one level and stops at low', () => {
-    expect(lowerQuality('high')).toBe('medium');
-    expect(lowerQuality('medium')).toBe('low');
-    expect(lowerQuality('low')).toBe('low');
   });
 });
