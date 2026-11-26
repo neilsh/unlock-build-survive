@@ -197,6 +197,8 @@ export class Game implements GameActions, GameDebugApi {
       survivalLastReward: 0,
       firstPerson: true,
       gamepadConnected: this.gamepad.isConnected(),
+      gamepadLabel: this.gamepad.getActiveInfo()?.id ?? null,
+      gamepadStandard: this.gamepad.getActiveInfo()?.mapping === 'standard',
     });
 
     this.scene.setOrbitMode(false);
@@ -213,7 +215,12 @@ export class Game implements GameActions, GameDebugApi {
     this.cleanups.push(
       this.scene.onFrame((dt) => this.tick(dt)),
       this.gamepad.onConnectionChange((connected) => {
-        uiStore.setState({ gamepadConnected: connected });
+        const info = this.gamepad.getActiveInfo();
+        uiStore.setState({
+          gamepadConnected: connected,
+          gamepadLabel: info?.id ?? null,
+          gamepadStandard: info?.mapping === 'standard',
+        });
         if (wasGamepadConnected && !connected) {
           levelStore.setState({ notice: GAMEPAD_LOST_NOTICE });
         } else if (

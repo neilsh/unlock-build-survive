@@ -53,6 +53,8 @@ export const uiStore = createStore<UIState>({
   azimuth: 0,
   firstPerson: true,
   gamepadConnected: false,
+  gamepadLabel: null,
+  gamepadStandard: true,
   playerHp: 100,
   playerMaxHp: 100,
   damageFlash: 0,

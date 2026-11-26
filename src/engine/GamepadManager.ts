@@ -167,6 +167,32 @@ function pickBestPad(candidates: readonly PadEntry[]): PadEntry | null {
   return best;
 }
 
+export interface GamepadInfo {
+  id: string;
+  slot: number;
+  /** `standard` = W3C layout this game expects; anything else (usually '') means buttons may be mis-numbered. */
+  mapping: string;
+  buttonCount: number;
+  axisCount: number;
+}
+
+/** Everything the browser currently exposes, for on-screen / console diagnostics. */
+export interface GamepadDiagnostics {
+  /** Pads the browser lists (null slots dropped), whether or not the game picked them. */
+  pads: Array<GamepadInfo & { connected: boolean }>;
+  active: GamepadInfo | null;
+}
+
+function infoOf(entry: PadEntry): GamepadInfo {
+  return {
+    id: entry.pad.id,
+    slot: entry.slot,
+    mapping: entry.pad.mapping ?? '',
+    buttonCount: entry.pad.buttons.length,
+    axisCount: entry.pad.axes.length,
+  };
+}
+
 export class GamepadManager {
   private readonly getGamepads: () => ArrayLike<GamepadLike | null>;
   private readonly listeners = new Set<(connected: boolean, id: string | null) => void>();
@@ -175,6 +201,7 @@ export class GamepadManager {
   private activePadIndex: number | null = null;
   private connected = false;
   private padId: string | null = null;
+  private padInfo: GamepadInfo | null = null;
   private paused = false;
 
   constructor(getGamepads: () => ArrayLike<GamepadLike | null> = defaultGetGamepads) {
@@ -182,6 +209,7 @@ export class GamepadManager {
 
     if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
       const onConnected = (e: Event) => {
+        console.warn('[gamepad] gamepadconnected event', this.describeEvent(e));
         if (
           'gamepad' in e &&
           typeof e.gamepad === 'object' &&
@@ -220,6 +248,28 @@ export class GamepadManager {
 
   isConnected(): boolean {
     return this.connected;
+  }
+
+  /** Details of the pad currently driving the game (null when none is detected). */
+  getActiveInfo(): GamepadInfo | null {
+    return this.padInfo;
+  }
+
+  /** Raw view of what the browser exposes right now (does not affect edge tracking). */
+  getDiagnostics(): GamepadDiagnostics {
+    const pads: GamepadDiagnostics['pads'] = [];
+    const list = this.getGamepads();
+    for (let i = 0; i < list.length; i++) {
+      const p = list[i];
+      if (!p) continue;
+      pads.push({ ...infoOf({ slot: p.index ?? i, pad: p }), connected: p.connected });
+    }
+    return { pads, active: this.padInfo };
+  }
+
+  private describeEvent(e: Event): string {
+    const g = (e as Event & { gamepad?: GamepadLike }).gamepad;
+    return g ? `${g.id} (index ${g.index ?? '?'}, mapping "${g.mapping ?? ''}")` : 'no gamepad payload';
   }
 
   /** Connected pads in slot order; also forgets button history of pads that went away. */
@@ -274,6 +324,15 @@ export class GamepadManager {
     if (nextConnected !== this.connected || nextId !== this.padId) {
       this.connected = nextConnected;
       this.padId = nextId;
+      this.padInfo = entry ? infoOf(entry) : null;
+      if (entry && this.padInfo && this.padInfo.mapping !== 'standard') {
+        console.warn(
+          '[gamepad] non-standard mapping; buttons may not match the expected layout',
+          this.padInfo,
+        );
+      } else if (entry) {
+        console.warn('[gamepad] using pad', this.padInfo);
+      }
       if (!nextConnected) this.prevButtonsByPad.clear();
       this.listeners.forEach((cb) => cb(nextConnected, nextId));
     }

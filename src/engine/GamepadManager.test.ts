@@ -307,4 +307,39 @@ describe('GamepadManager', () => {
       gm.dispose();
     });
   });
+
+  describe('diagnostics', () => {
+    it('reports no active pad and an empty list before any button press (browser hides pads until then)', () => {
+      const gm = new GamepadManager(() => [null, null, null, null]);
+      expect(gm.isConnected()).toBe(false);
+      expect(gm.getActiveInfo()).toBeNull();
+      expect(gm.getDiagnostics()).toEqual({ pads: [], active: null });
+    });
+
+    it('picks up a pad that appears later with a frozen timestamp, as real browsers report it', () => {
+      let pad: GamepadLike | null = null;
+      const gm = new GamepadManager(() => [pad]);
+      expect(gm.poll().connected).toBe(false);
+
+      pad = {
+        ...withIndex(makePad([0, 0, 0, 0], { 9: { pressed: true } }, 'Pro Controller'), 0),
+        timestamp: 42,
+      };
+      const snap = gm.poll();
+      expect(snap.connected).toBe(true);
+      expect(snap.menuPressed).toBe(true);
+      expect(gm.getActiveInfo()).toMatchObject({ id: 'Pro Controller', slot: 0, mapping: 'standard' });
+    });
+
+    it('exposes the mapping so non-standard pads can be flagged', () => {
+      const pad: GamepadLike = { ...makePad([0, 0, 0, 0, 0, 0], {}, 'Generic DInput'), mapping: '' };
+      const gm = new GamepadManager(() => [pad]);
+      expect(gm.getActiveInfo()?.mapping).toBe('');
+      expect(gm.getDiagnostics().pads[0]).toMatchObject({
+        id: 'Generic DInput',
+        connected: true,
+        axisCount: 6,
+      });
+    });
+  });
 });

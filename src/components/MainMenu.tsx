@@ -130,6 +130,16 @@ export function MainMenu({ actions, onOpenChallenges, onOpenShop }: MainMenuProp
             <p className="text-sm font-bold text-sky-800">
               Build your shelter, step inside in 1st person, and brave the storm!
             </p>
+            <p data-testid="menu-gamepad-status" className="text-xs font-bold text-sky-700">
+              {s.gamepadConnected
+                ? `Gamepad connected: ${s.gamepadLabel ?? 'unknown'}`
+                : 'No gamepad detected — click the game, then press any button on your controller.'}
+            </p>
+            {s.gamepadConnected && !s.gamepadStandard && (
+              <p data-testid="menu-gamepad-warning" className="text-xs font-bold text-rose-700">
+                This controller reports a non-standard layout, so some buttons may not match.
+              </p>
+            )}
             {s.gamepadConnected && (
               <p data-testid="menu-gamepad-hint" className="text-xs font-bold text-amber-800">
                 Gamepad: D-pad / stick move · A select · B back{s.hasStarted ? ' · Start resume' : ''}

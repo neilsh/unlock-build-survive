@@ -77,6 +77,10 @@ export interface UIState {
   azimuth: Azimuth;
   firstPerson: boolean;
   gamepadConnected: boolean;
+  /** Id string of the pad driving the game (for the menu status line), or null when none is detected. */
+  gamepadLabel: string | null;
+  /** False when the browser reports a non-standard button layout for the active pad. */
+  gamepadStandard: boolean;
   playerHp: number;
   playerMaxHp: number;
   /** Incremented whenever the player takes a sharp hit (triggers HUD flash). */

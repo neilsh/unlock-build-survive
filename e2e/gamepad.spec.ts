@@ -44,6 +44,41 @@ async function press(page: Page, button: number, effect: () => Promise<void>) {
 const START = 9;
 const A = 0;
 
+test.describe('gamepad status', () => {
+  test('menu says no pad is detected, then names the pad once the browser exposes one', async ({ page }) => {
+    await page.addInitScript(() => {
+      window.fakePad = { axes: [0, 0, 0, 0], down: new Set<number>() };
+      let exposed = false;
+      (window as unknown as { exposePad: () => void }).exposePad = () => {
+        exposed = true;
+      };
+      Object.defineProperty(navigator, 'getGamepads', {
+        configurable: true,
+        value: () =>
+          exposed
+            ? [
+                {
+                  id: 'Late Pad',
+                  index: 0,
+                  connected: true,
+                  mapping: '',
+                  timestamp: 1,
+                  axes: [0, 0, 0, 0],
+                  buttons: Array.from({ length: 17 }, () => ({ pressed: false, value: 0 })),
+                },
+              ]
+            : [null, null, null, null],
+      });
+    });
+    await page.goto('/');
+    await page.waitForFunction(() => Boolean(window.__GAME_DEBUG__), null, { timeout: 30_000 });
+    await expect(page.getByTestId('menu-gamepad-status')).toContainText('No gamepad detected');
+    await page.evaluate(() => (window as unknown as { exposePad: () => void }).exposePad());
+    await expect(page.getByTestId('menu-gamepad-status')).toContainText('Late Pad');
+    await expect(page.getByTestId('menu-gamepad-warning')).toBeVisible();
+  });
+});
+
 test.describe('gamepad (solo)', () => {
   test('menu navigation, Start pause/resume', async ({ page }) => {
     const errors: string[] = [];
