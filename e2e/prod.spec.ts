@@ -64,7 +64,7 @@ test('a lost graphics context shows a reload prompt, then drawing resumes when i
       };
     }
   });
-  await page.goto('./');
+  await page.goto('./?noreload');
   await expect(page.getByTestId('main-menu')).toBeVisible({ timeout: 60_000 });
   const draws = () => page.evaluate(() => (window as unknown as { draws: number }).draws);
   await expect.poll(draws, { timeout: 30_000 }).toBeGreaterThan(0);
@@ -105,7 +105,7 @@ test('after a lost context the next load starts in safe mode and the error scree
   page,
 }) => {
   const errors = watchErrors(page);
-  await page.goto('./');
+  await page.goto('./?noreload');
   await expect(page.getByTestId('main-menu')).toBeVisible({ timeout: 60_000 });
   // Lose it right away, like the phone does at startup.
   await loseContext(page);
@@ -146,8 +146,58 @@ test('a browser that only allows one WebGL context still gets exactly one from u
       return Reflect.apply(original, this, [type, ...rest]);
     };
   });
-  await page.goto('./');
+  await page.goto('./?noreload');
   await expect(page.getByTestId('main-menu')).toBeVisible({ timeout: 60_000 });
   await expect(page.getByTestId('startup-error')).toHaveCount(0);
   await expect(page.locator('canvas')).toHaveCount(1);
+});
+
+test('a start-up crash reloads the page once, into safe mode, without looping', async ({ page }) => {
+  const errors = watchErrors(page);
+  await page.goto('./');
+  await expect(page.getByTestId('main-menu')).toBeVisible({ timeout: 60_000 });
+  const reloaded = page.waitForEvent('load');
+  await loseContext(page);
+  await reloaded;
+  await expect(page.getByTestId('main-menu')).toBeVisible({ timeout: 60_000 });
+  // Lose it again: the cool-down stops a second automatic reload, so the screen stays and explains.
+  await loseContext(page);
+  await expect(page.getByTestId('graphics-problem')).toBeVisible({ timeout: 10_000 });
+  const report = await page.getByTestId('graphics-problem-report').innerText();
+  expect(report).toContain('safe mode: on (recent crash)');
+  expect(report).toContain('Reloaded automatically after an early loss');
+  expect(errors).toEqual([]);
+});
+
+test('a PowerVR phone starts in safe mode by default', async ({ page }) => {
+  await page.addInitScript(() => {
+    const proto = WebGL2RenderingContext.prototype as unknown as {
+      getParameter: (this: unknown, pname: number) => unknown;
+    };
+    const original = proto.getParameter;
+    proto.getParameter = function (this: unknown, pname: number) {
+      // UNMASKED_RENDERER_WEBGL
+      if (pname === 0x9246)
+        return 'ANGLE (Imagination Technologies, PowerVR D- Series DXT-48-1536, OpenGL ES 3.2)';
+      return original.call(this, pname);
+    };
+  });
+  await page.goto('./?noreload');
+  await expect(page.getByTestId('main-menu')).toBeVisible({ timeout: 60_000 });
+  await loseContext(page);
+  await expect(page.getByTestId('graphics-problem')).toBeVisible({ timeout: 10_000 });
+  const report = await page.getByTestId('graphics-problem-report').innerText();
+  expect(report).toContain('GPU: ANGLE (Imagination Technologies, PowerVR');
+  expect(report).toContain('safe mode: on (PowerVR GPU)');
+  expect(report).toContain('pixel ratio 1.00');
+});
+
+test('?gpu= flags are applied and listed in the report', async ({ page }) => {
+  await page.goto('./?noreload&gpu=noshadow,pr1,fps30,nomsaa,notone');
+  await expect(page.getByTestId('main-menu')).toBeVisible({ timeout: 60_000 });
+  await loseContext(page);
+  await expect(page.getByTestId('graphics-problem')).toBeVisible({ timeout: 10_000 });
+  const report = await page.getByTestId('graphics-problem-report').innerText();
+  expect(report).toContain('flags: noshadow,nomsaa,pr1,notone,fps30');
+  expect(report).toContain('pixel ratio 1.00');
 });

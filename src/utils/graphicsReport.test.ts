@@ -3,9 +3,12 @@ import {
   clearCrash,
   formatGraphicsReport,
   graphicsReport,
+  AUTO_RELOAD_COOLDOWN_MS,
+  markAutoReload,
   readCrash,
   recordCrash,
   SAFE_MODE_WINDOW_MS,
+  shouldAutoReload,
   shouldUseSafeMode,
   type StorageLike,
 } from './graphicsReport';
@@ -69,5 +72,24 @@ describe('formatGraphicsReport', () => {
     expect(text).toContain('Contexts created: 1 · attempts: 2');
     expect(text).toContain('before the first frame');
     expect(text).toContain('Error creating WebGL context.');
+  });
+});
+
+describe('auto reload after an early loss', () => {
+  it('reloads once for a loss in the first seconds, not for a late one', () => {
+    const s = memory();
+    expect(shouldAutoReload(2500, '', s, 1000)).toBe(true);
+    expect(shouldAutoReload(60_000, '', s, 1000)).toBe(false);
+  });
+
+  it('never loops: not again inside the cool-down, allowed after it', () => {
+    const s = memory();
+    markAutoReload(s, 1000);
+    expect(shouldAutoReload(2500, '', s, 2000)).toBe(false);
+    expect(shouldAutoReload(2500, '', s, 1000 + AUTO_RELOAD_COOLDOWN_MS + 1)).toBe(true);
+  });
+
+  it('?noreload turns it off', () => {
+    expect(shouldAutoReload(2500, '?noreload', memory(), 1)).toBe(false);
   });
 });

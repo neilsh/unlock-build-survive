@@ -16,12 +16,17 @@ import {
   clearCrash,
   describeCrash,
   graphicsReport,
+  markAutoReload,
   pageStorage,
   readCrash,
   recordCrash,
+  sessionStorageOrNull,
+  shouldAutoReload,
   shouldUseSafeMode,
+  wasAutoReloaded,
   STABLE_SECONDS,
 } from '../utils/graphicsReport';
+import { describeGpuFlags, isPowerVr, NO_GPU_FLAGS, parseGpuFlags, type GpuFlags } from '../utils/gpuFlags';
 import { effectivePixelRatio, effectiveShadowMapSize } from './renderBudget';
 import { DisasterEffects, type CustomDisasterFx } from './Effects';
 import { buildIslandScenery, dirtTexture, grassTexture } from './IslandScenery';
@@ -119,9 +124,10 @@ export class SceneManager {
   private quality: QualityProfile = QUALITY_PROFILES.high;
   private touch = false;
   private safe = false;
+  private flags: GpuFlags = NO_GPU_FLAGS;
+  private lastFrameTs = 0;
   private contextLost = false;
   private stableMarked = false;
-  private pageStart = performance.now();
   private graphicsListener: ((status: GraphicsStatus) => void) | null = null;
   private failingFrames = 0;
 
@@ -132,12 +138,23 @@ export class SceneManager {
     const touch = window.matchMedia?.('(pointer: coarse)').matches ?? false;
     // After a lost context (or with ?safe) start in a plain mode: low graphics, no shadows or tone mapping.
     const storage = pageStorage();
-    this.safe = shouldUseSafeMode(window.location.search, storage, Date.now());
-    graphicsReport.safeMode = this.safe;
+    const search = window.location.search;
+    this.flags = parseGpuFlags(search);
+    graphicsReport.flags = describeGpuFlags(this.flags);
+    this.safe = shouldUseSafeMode(search, storage, Date.now());
+    if (this.safe)
+      graphicsReport.safeReason = new URLSearchParams(search).has('safe') ? '?safe' : 'recent crash';
+    graphicsReport.autoReloaded = wasAutoReloaded(sessionStorageOrNull(), Date.now());
     const crash = readCrash(storage);
     graphicsReport.previousCrash = crash ? describeCrash(crash, Date.now()) : null;
-    if (this.safe) this.quality = QUALITY_PROFILES.low;
-    const { renderer, canvas } = createGameRenderer(container, touch, this.safe);
+    const { renderer, canvas } = createGameRenderer(container, touch || this.flags.nomsaa, this.safe);
+    // PowerVR phones (Pixel 10) have been losing the context seconds after start: plain mode until proven safe.
+    if (!this.safe && touch && isPowerVr(graphicsReport.gpu) && !new URLSearchParams(search).has('nosafe')) {
+      this.safe = true;
+      graphicsReport.safeReason = 'PowerVR GPU';
+    }
+    graphicsReport.safeMode = this.safe;
+    this.quality = this.profileFor('high');
     this.renderer = renderer;
     this.domElement = canvas;
     // A lost WebGL context (phone memory pressure, tab switch) must be allowed to come back, otherwise the
@@ -148,7 +165,8 @@ export class SceneManager {
     this.renderer.shadowMap.enabled = this.quality.shadows;
     // PCFSoftShadowMap was removed in recent three; PCF honours shadow.radius for soft edges.
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
-    this.renderer.toneMapping = this.safe ? THREE.NoToneMapping : THREE.ACESFilmicToneMapping;
+    this.renderer.toneMapping =
+      this.safe || this.flags.notone ? THREE.NoToneMapping : THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.05;
 
     const background = new THREE.Color('#9bdcff');
@@ -202,10 +220,16 @@ export class SceneManager {
   private readonly onContextLost = (e: Event): void => {
     e.preventDefault();
     this.contextLost = true;
-    graphicsReport.lostAtMs = performance.now() - this.pageStart;
+    graphicsReport.lostAtMs = performance.now();
     graphicsReport.lostBeforeFirstFrame = graphicsReport.frames === 0;
     recordCrash(pageStorage(), graphicsReport.frames, Date.now());
     this.graphicsListener?.('lost');
+    // A loss in the first seconds is a start-up crash: reload once, now in safe mode, instead of stranding the player.
+    const session = sessionStorageOrNull();
+    if (shouldAutoReload(graphicsReport.lostAtMs, window.location.search, session, Date.now())) {
+      markAutoReload(session, Date.now());
+      window.location.reload();
+    }
   };
 
   private readonly onContextRestored = (): void => {
@@ -361,6 +385,8 @@ export class SceneManager {
   private readonly loop = (timestamp: number) => {
     if (this.disposed) return;
     this.rafId = requestAnimationFrame(this.loop);
+    if (this.flags.fps30 && timestamp - this.lastFrameTs < 30) return;
+    this.lastFrameTs = timestamp;
     try {
       this.frame(timestamp);
     } catch (err) {
@@ -452,8 +478,18 @@ export class SceneManager {
   }
 
   /** Applies a graphics quality preset live: pixel ratio cap, shadows on/off and shadow map size. */
+  /** The quality profile in effect: safe mode and ?gpu= flags override the player's choice. */
+  private profileFor(level: GraphicsQuality): QualityProfile {
+    const base = QUALITY_PROFILES[this.safe ? 'low' : level];
+    return {
+      ...base,
+      shadows: base.shadows && !this.flags.noshadow,
+      maxPixelRatio: this.flags.pr1 ? 1 : base.maxPixelRatio,
+    };
+  }
+
   setQuality(level: GraphicsQuality): void {
-    const next = QUALITY_PROFILES[this.safe ? 'low' : level];
+    const next = this.profileFor(level);
     const prev = this.quality;
     this.quality = next;
     if (prev.shadows !== next.shadows) {

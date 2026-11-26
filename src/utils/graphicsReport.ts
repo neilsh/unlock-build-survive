@@ -22,6 +22,12 @@ export interface GraphicsReport {
   pixelRatio: number | null;
   canvas: string | null;
   previousCrash: string | null;
+  /** Active ?gpu= test flags. */
+  flags: string;
+  /** Why safe mode is on, if it is. */
+  safeReason: string | null;
+  /** True when this page load is the automatic reload after an early context loss. */
+  autoReloaded: boolean;
 }
 
 export const graphicsReport: GraphicsReport = {
@@ -38,6 +44,9 @@ export const graphicsReport: GraphicsReport = {
   pixelRatio: null,
   canvas: null,
   previousCrash: null,
+  flags: 'none',
+  safeReason: null,
+  autoReloaded: false,
 };
 
 /** One compact, copy-friendly text block. */
@@ -46,7 +55,7 @@ export function formatGraphicsReport(r: GraphicsReport = graphicsReport): string
     `GPU: ${r.gpu ?? 'unknown'}`,
     `GL: ${r.glVersion ?? 'none'} · max texture ${r.maxTexture ?? '?'}`,
     `Contexts created: ${r.contextsCreated} · attempts: ${r.attempts}`,
-    `Frames drawn: ${r.frames} · safe mode: ${r.safeMode ? 'on' : 'off'}`,
+    `Frames drawn: ${r.frames} · safe mode: ${r.safeMode ? `on (${r.safeReason ?? '?'})` : 'off'} · flags: ${r.flags}`,
     `Canvas: ${r.canvas ?? '?'} · pixel ratio ${r.pixelRatio?.toFixed(2) ?? '?'}`,
   ];
   if (r.lostAtMs !== null) {
@@ -54,6 +63,7 @@ export function formatGraphicsReport(r: GraphicsReport = graphicsReport): string
       `Context lost at ${(r.lostAtMs / 1000).toFixed(1)}s${r.lostBeforeFirstFrame ? ' (before the first frame)' : ''}`,
     );
   }
+  if (r.autoReloaded) lines.push('Reloaded automatically after an early loss');
   if (r.previousCrash) lines.push(`Last time: ${r.previousCrash}`);
   if (r.failures.length > 0) lines.push(`Errors: ${r.failures.join(' | ')}`);
   return lines.join('\n');
@@ -129,6 +139,48 @@ export function describeCrash(c: CrashRecord, now: number): string {
 export function pageStorage(): StorageLike | null {
   try {
     return globalThis.localStorage ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// ------------------------------------------------------------------ automatic reload
+
+export const AUTO_RELOAD_KEY = 'disaster-village:gfx-autoreload:v1';
+/** A context lost sooner than this after the page started is treated as a start-up crash. */
+export const EARLY_LOSS_MS = 10_000;
+/** At most one automatic reload per tab in this window, so a bad phone never loops. */
+export const AUTO_RELOAD_COOLDOWN_MS = 2 * 60 * 1000;
+
+/** Whether an early loss should reload the page once into safe mode (`?noreload` turns this off). */
+export function shouldAutoReload(
+  lostAtMs: number,
+  search: string,
+  session: StorageLike | null,
+  now: number,
+): boolean {
+  if (lostAtMs >= EARLY_LOSS_MS || new URLSearchParams(search).has('noreload')) return false;
+  const last = Number(session?.getItem(AUTO_RELOAD_KEY) ?? 0);
+  return !(Number.isFinite(last) && last > 0 && now - last < AUTO_RELOAD_COOLDOWN_MS);
+}
+
+export function markAutoReload(session: StorageLike | null, now: number): void {
+  try {
+    session?.setItem(AUTO_RELOAD_KEY, String(now));
+  } catch {
+    // ignore
+  }
+}
+
+/** True when the page was just reloaded by markAutoReload (within the last few seconds). */
+export function wasAutoReloaded(session: StorageLike | null, now: number): boolean {
+  const last = Number(session?.getItem(AUTO_RELOAD_KEY) ?? 0);
+  return Number.isFinite(last) && last > 0 && now - last < 30_000;
+}
+
+export function sessionStorageOrNull(): StorageLike | null {
+  try {
+    return globalThis.sessionStorage ?? null;
   } catch {
     return null;
   }
