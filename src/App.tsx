@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { GraphicsProblem } from './components/GraphicsProblem';
 import { HUD } from './components/HUD';
 import { StartupError, StartupErrorBoundary } from './components/StartupError';
 import { installDebugApi } from './engine/debug';
@@ -39,6 +40,7 @@ function GameView() {
     <div className="relative h-full w-full">
       <div ref={container} className="absolute inset-0" />
       {game && <HUD actions={game} />}
+      <GraphicsProblem />
       {startupError !== null && <StartupError error={startupError} />}
     </div>
   );

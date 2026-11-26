@@ -6,11 +6,13 @@
 import { P1_BODY_LAYER } from './PlayerBody';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import type { GraphicsStatus } from '../types/ui';
 import type { Azimuth, DisasterType, ProjectileKind, Vec3 } from '../types/blueprint';
 import { getIslandSize } from '../types/blueprint';
 import { QUALITY_PROFILES, type GraphicsQuality, type QualityProfile } from '../types/settings';
 import { mulberry32 } from '../utils/rng';
 import { createGameRenderer } from './createRenderer';
+import { effectivePixelRatio, effectiveShadowMapSize } from './renderBudget';
 import { DisasterEffects, type CustomDisasterFx } from './Effects';
 import { buildIslandScenery, dirtTexture, grassTexture } from './IslandScenery';
 
@@ -23,6 +25,8 @@ const MAX_FRAME_DT = 0.1;
 const WATER_SEGMENTS = 40;
 const WATER_SIZE = 90;
 const WATER_HIDDEN_BELOW = -1;
+/** Consecutive failed frames (about half a second) before the player is told the view is stuck. */
+const FAILING_FRAMES_BEFORE_NOTICE = 30;
 
 const easeInOut = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 
@@ -103,6 +107,9 @@ export class SceneManager {
   private disposed = false;
   private splitScreen = false;
   private quality: QualityProfile = QUALITY_PROFILES.high;
+  private touch = false;
+  private graphicsListener: ((status: GraphicsStatus) => void) | null = null;
+  private failingFrames = 0;
 
   constructor(container: HTMLElement) {
     this.container = container;
@@ -116,7 +123,7 @@ export class SceneManager {
     // browser leaves a blank canvas with a broken-image icon.
     this.domElement.addEventListener('webglcontextlost', this.onContextLost);
     this.domElement.addEventListener('webglcontextrestored', this.onContextRestored);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, this.quality.maxPixelRatio));
+    this.touch = touch;
     this.renderer.shadowMap.enabled = this.quality.shadows;
     // PCFSoftShadowMap was removed in recent three; PCF honours shadow.radius for soft edges.
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
@@ -166,8 +173,14 @@ export class SceneManager {
     this.rafId = requestAnimationFrame(this.loop);
   }
 
+  /** Tells the game when drawing stops or resumes, so it can show a message instead of a frozen blank view. */
+  setGraphicsListener(cb: ((status: GraphicsStatus) => void) | null): void {
+    this.graphicsListener = cb;
+  }
+
   private readonly onContextLost = (e: Event): void => {
     e.preventDefault();
+    this.graphicsListener?.('lost');
   };
 
   private readonly onContextRestored = (): void => {
@@ -177,6 +190,7 @@ export class SceneManager {
       for (const m of mats) m.needsUpdate = true;
     });
     this.resize();
+    this.graphicsListener?.('restored');
   };
 
   /** Register a per-frame callback. Returns an unsubscribe function. */
@@ -322,6 +336,20 @@ export class SceneManager {
   private readonly loop = (timestamp: number) => {
     if (this.disposed) return;
     this.rafId = requestAnimationFrame(this.loop);
+    try {
+      this.frame(timestamp);
+    } catch (err) {
+      // One bad frame must not stop the loop. A long run of them means the view is frozen: say so.
+      if (this.failingFrames === 0) console.error('Frame failed', err);
+      this.failingFrames++;
+      if (this.failingFrames === FAILING_FRAMES_BEFORE_NOTICE) this.graphicsListener?.('failing');
+      return;
+    }
+    if (this.failingFrames >= FAILING_FRAMES_BEFORE_NOTICE) this.graphicsListener?.('recovered');
+    this.failingFrames = 0;
+  };
+
+  private frame(timestamp: number): void {
     this.timer.update(timestamp);
     const dt = Math.min(this.timer.getDelta(), MAX_FRAME_DT);
     this.time += dt;
@@ -351,7 +379,7 @@ export class SceneManager {
       this.renderer.render(this.scene, this.camera);
     }
     this.camera.position.sub(shake);
-  };
+  }
 
   private renderViewport(cam: THREE.PerspectiveCamera, x: number, w: number, h: number): void {
     this.renderer.setViewport(x, 0, w, h);
@@ -395,7 +423,6 @@ export class SceneManager {
     const next = QUALITY_PROFILES[level];
     const prev = this.quality;
     this.quality = next;
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, next.maxPixelRatio));
     if (prev.shadows !== next.shadows) {
       this.renderer.shadowMap.enabled = next.shadows;
       // Materials compiled with/without shadow code must be rebuilt after toggling the shadow map.
@@ -406,7 +433,8 @@ export class SceneManager {
       });
     }
     if (this.sun && prev.shadowMapSize !== next.shadowMapSize) {
-      this.sun.shadow.mapSize.set(next.shadowMapSize, next.shadowMapSize);
+      const size = effectiveShadowMapSize(next.shadowMapSize, this.touch);
+      this.sun.shadow.mapSize.set(size, size);
       this.sun.shadow.map?.dispose();
       this.sun.shadow.map = null; // recreated at the new size on the next render
     }
@@ -416,6 +444,9 @@ export class SceneManager {
   private resize(): void {
     const w = Math.max(1, this.container.clientWidth);
     const h = Math.max(1, this.container.clientHeight);
+    this.renderer.setPixelRatio(
+      effectivePixelRatio(window.devicePixelRatio, this.quality.maxPixelRatio, w, h, this.touch),
+    );
     this.renderer.setSize(w, h, false);
     this.updateAspects();
   }
@@ -454,7 +485,8 @@ export class SceneManager {
     const sun = new THREE.DirectionalLight('#fff4d6', 2.4);
     sun.position.set(14, 26, 10);
     sun.castShadow = true;
-    sun.shadow.mapSize.set(2048, 2048);
+    const shadowSize = effectiveShadowMapSize(2048, this.touch);
+    sun.shadow.mapSize.set(shadowSize, shadowSize);
     this.sun = sun;
     this.fitSunShadow();
     sun.shadow.radius = 4;

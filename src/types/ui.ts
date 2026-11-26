@@ -96,6 +96,8 @@ export interface UIState extends DisasterAddonFlags {
   musicVolume: number;
   /** Player preferences from the Settings screen (everything but mute / music volume). */
   settings: AppSettings;
+  /** `lost`: the GPU dropped the WebGL context; `failing`: frames keep throwing. Either way the view is frozen. */
+  graphicsProblem: 'none' | 'lost' | 'failing';
   canUndo: boolean;
   azimuth: Azimuth;
   firstPerson: boolean;
@@ -179,3 +181,6 @@ export interface GameActions {
   nextSurvivalWave(): void;
   restartSurvival(): void;
 }
+
+/** What the renderer reports to the game about drawing health. */
+export type GraphicsStatus = 'lost' | 'restored' | 'failing' | 'recovered';

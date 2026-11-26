@@ -46,3 +46,39 @@ test('never a blank page: if the game script fails to load a message appears', a
   await page.goto('./');
   await expect(page.locator('#ubs-boot-error')).toBeVisible({ timeout: 15_000 });
 });
+
+test('a lost graphics context shows a reload prompt, recovers, and lowers graphics on the phone', async ({
+  page,
+}) => {
+  const errors = watchErrors(page);
+  await page.goto('./');
+  await expect(page.getByTestId('main-menu')).toBeVisible({ timeout: 60_000 });
+  const before = await page.evaluate(() =>
+    JSON.parse(localStorage.getItem('disaster-village:settings:v1') ?? '{}'),
+  );
+  expect(before.quality ?? 'medium').toBe('medium');
+
+  // Simulate the phone dropping the GL context (memory pressure).
+  await page.evaluate(() => {
+    const canvas = document.querySelector('canvas')!;
+    const gl = canvas.getContext('webgl2') ?? canvas.getContext('webgl');
+    // Keep the handle: a lost context no longer hands the extension out.
+    const ext = gl!.getExtension('WEBGL_lose_context')!;
+    (window as unknown as { loseCtxHandle: typeof ext }).loseCtxHandle = ext;
+    ext.loseContext();
+  });
+  await expect(page.getByTestId('graphics-problem')).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByTestId('graphics-problem-reload')).toBeVisible();
+
+  // The browser hands the context back: the message goes away and graphics drop a step.
+  await page.evaluate(() => {
+    (window as unknown as { loseCtxHandle: { restoreContext(): void } }).loseCtxHandle.restoreContext();
+  });
+  await expect(page.getByTestId('graphics-problem')).toBeHidden({ timeout: 10_000 });
+  await expect(page.getByTestId('main-menu')).toBeVisible();
+  const after = await page.evaluate(() =>
+    JSON.parse(localStorage.getItem('disaster-village:settings:v1') ?? '{}'),
+  );
+  expect(after.quality).toBe('low');
+  expect(errors).toEqual([]);
+});

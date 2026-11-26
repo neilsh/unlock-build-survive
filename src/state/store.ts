@@ -62,6 +62,7 @@ export const uiStore = createStore<UIState>({
   muted: false,
   musicVolume: DEFAULT_AUDIO_SETTINGS.musicVolume,
   settings: DEFAULT_SETTINGS,
+  graphicsProblem: 'none',
   canUndo: false,
   azimuth: 0,
   firstPerson: true,

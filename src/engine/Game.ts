@@ -20,7 +20,7 @@ import type {
   Telemetry,
   Vec3,
 } from '../types/blueprint';
-import type { GameActions } from '../types/ui';
+import type { GameActions, GraphicsStatus } from '../types/ui';
 import { DEFAULT_STRENGTH, DISASTER_SECONDS, cellToWorld, setIslandCells } from '../types/blueprint';
 import { isBuiltinMaterial } from '../types/materials';
 import { uiStore } from '../state/store';
@@ -44,9 +44,10 @@ import { disasterAddonSimOptions } from '../types/addons';
 import { ProceduralAssets } from './ProceduralAssets';
 import { AudioSynth } from './AudioSynth';
 import { DEFAULT_AUDIO_SETTINGS, loadAudioSettings, saveAudioSettings } from '../state/audioSettings';
-import { deviceDefaultSettings, loadSettings, saveSettings } from '../state/settings';
+import { deviceDefaultSettings, isTouchDevice, loadSettings, saveSettings } from '../state/settings';
 import { sanitizeSettings, type AppSettings } from '../types/settings';
 import { SceneManager } from './SceneManager';
+import { lowerQuality } from './renderBudget';
 import { CombatController } from './game/CombatController';
 import { InputRouter } from './game/InputRouter';
 import {
@@ -277,6 +278,7 @@ export class Game implements GameActions, GameDebugApi {
     this.audio.setMusicVolume(saved.musicVolume);
     uiStore.setState({ muted: saved.muted, musicVolume: saved.musicVolume });
     this.applySettings(loadSettings());
+    this.scene.setGraphicsListener((status) => this.onGraphicsStatus(status));
 
     let menuOpen = uiStore.getState().menuOpen;
     this.audio.setMusicTheme(menuOpen ? 'menu' : 'game');
@@ -310,6 +312,20 @@ export class Game implements GameActions, GameDebugApi {
     this.gamepad.setDeadzone(settings.gamepadDeadzone);
     this.scene.setQuality(settings.quality);
     uiStore.setState({ settings });
+  }
+
+  /** A lost GL context or a stuck frame loop: tell the UI, and on a phone drop one quality step so it is less likely to repeat. */
+  private onGraphicsStatus(status: GraphicsStatus) {
+    if (status === 'lost' || status === 'failing') {
+      uiStore.setState({ graphicsProblem: status });
+      return;
+    }
+    uiStore.setState({ graphicsProblem: 'none' });
+    if (status === 'restored' && isTouchDevice()) {
+      const { settings } = uiStore.getState();
+      const lower = lowerQuality(settings.quality);
+      if (lower !== settings.quality) this.updateSettings({ quality: lower });
+    }
   }
 
   private saveAudio() {
