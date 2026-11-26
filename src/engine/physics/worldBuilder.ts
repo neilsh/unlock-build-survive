@@ -23,12 +23,15 @@ export function addBlocks(ctx: SimContext, graph: BlueprintGraph, meshes: MeshRe
     const body = ctx.world.createRigidBody(
       ctx.R.RigidBodyDesc.dynamic().setTranslation(centre.x, centre.y, centre.z).setCanSleep(false),
     );
-    const col = ctx.world.createCollider(
-      ctx.R.ColliderDesc.cuboid(h, CELL_SIZE / 2, h)
-        .setDensity(mat.density)
-        .setFriction(0.8),
-      body,
-    );
+    const colDesc = ctx.R.ColliderDesc.cuboid(h, CELL_SIZE / 2, h)
+      .setDensity(mat.density)
+      .setFriction(0.8);
+    if (ctx.blockRestitution !== null) {
+      colDesc
+        .setRestitution(ctx.blockRestitution)
+        .setRestitutionCombineRule(ctx.R.CoefficientCombineRule.Max);
+    }
+    const col = ctx.world.createCollider(colDesc, body);
     const mesh = meshes.blocks.get(b.id);
     const rec: BlockRec = {
       data: b,

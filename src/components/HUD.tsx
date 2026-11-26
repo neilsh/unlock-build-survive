@@ -17,21 +17,33 @@ import {
   CloudLightning,
   Columns2,
   Compass,
+  Copy,
   Crosshair,
   Heart,
   Menu,
   Moon,
+  Rabbit,
   RotateCcw,
   Save,
   Shield,
+  Snowflake,
   Sparkles,
   Swords,
+  Timer,
   Users,
   Zap,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useLevelInfo } from '../levels/levelStore';
 import { useUIState } from '../state/store';
+import { DISASTER_ADDON_INFO, type DisasterAddonId } from '../types/addons';
+
+const DISASTER_ADDON_BADGES: ReadonlyArray<{ id: DisasterAddonId; bg: string; icon: ReactNode }> = [
+  { id: 'bouncyBlocks', bg: 'bg-pink-600', icon: <Rabbit size={15} aria-hidden="true" /> },
+  { id: 'giantHail', bg: 'bg-cyan-600', icon: <Snowflake size={15} aria-hidden="true" /> },
+  { id: 'doubleTrouble', bg: 'bg-orange-600', icon: <Copy size={15} aria-hidden="true" /> },
+  { id: 'slowMotion', bg: 'bg-emerald-600', icon: <Timer size={15} aria-hidden="true" /> },
+];
 import { ARMORS, WEAPONS } from '../types/gear';
 import { isSandboxPlayMode, isTwoPlayerCoop, isVillagePlayMode, type GameActions } from '../types/ui';
 import { Banners } from './Banners';
@@ -221,6 +233,20 @@ export function HUD({ actions }: { actions: GameActions }) {
             <CloudLightning size={15} aria-hidden="true" />
             Mega Storm
           </span>
+        )}
+
+        {DISASTER_ADDON_BADGES.map(
+          (b) =>
+            s[b.id] && (
+              <span
+                key={b.id}
+                data-testid={`addon-badge-${b.id}`}
+                className={`flex min-h-11 items-center gap-1.5 rounded-2xl px-3 text-xs font-black text-white shadow-md backdrop-blur ${b.bg}`}
+              >
+                {b.icon}
+                {DISASTER_ADDON_INFO[b.id].badge}
+              </span>
+            ),
         )}
 
         {s.multiplayerMode !== 'solo' && (

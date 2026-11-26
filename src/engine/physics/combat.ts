@@ -207,6 +207,9 @@ export function spawnTargetedProjectile(
   spawnProjectile(ctx, kind, sx, sy, sz, vx, vy, vz, r, density, speed, Math.hypot(vx, vz));
 }
 
+/** Live-projectile ceiling that only applies while Double Trouble is on. */
+const MAX_ADDON_PROJECTILES = 140;
+
 export function spawnProjectile(
   ctx: SimContext,
   kind: ProjectileKind,
@@ -221,12 +224,15 @@ export function spawnProjectile(
   speed: number,
   horizSpeed: number,
 ) {
+  // Add-on guard: "Double Trouble" must never flood the world with bodies.
+  if (ctx.spawnRate > 1 && ctx.projectiles.length >= MAX_ADDON_PROJECTILES) return;
+  const radius = r * ctx.projectileScale;
   const body = ctx.world.createRigidBody(
     ctx.R.RigidBodyDesc.dynamic().setTranslation(x, y, z).setLinvel(vx, vy, vz).setCcdEnabled(true),
   );
-  ctx.world.createCollider(ctx.R.ColliderDesc.ball(r).setDensity(density).setRestitution(0.2), body);
+  ctx.world.createCollider(ctx.R.ColliderDesc.ball(radius).setDensity(density).setRestitution(0.2), body);
   const mesh = new THREE.Mesh(ctx.projectileGeom, ctx.projectileMats[kind]);
-  mesh.scale.setScalar(r);
+  mesh.scale.setScalar(radius);
   mesh.position.set(x, y, z);
   mesh.castShadow = true;
   ctx.effectsRoot?.add(mesh);
@@ -234,7 +240,7 @@ export function spawnProjectile(
     kind,
     body,
     mesh,
-    radius: r,
+    radius,
     speed,
     horizSpeed,
     hp: kind === 'meteor' ? 2 : 1,

@@ -243,7 +243,13 @@ describe('SessionController', () => {
     const { deps, s } = make();
     s.setMultiplayerMode('split');
     s.startPlayMode('survival');
-    uiStore.setState({ moonGravity: true, hasSave: true, survivalWave: 4 });
+    uiStore.setState({
+      moonGravity: true,
+      bouncyBlocks: true,
+      slowMotion: true,
+      hasSave: true,
+      survivalWave: 4,
+    });
     s.exitToMenu();
     expect(uiStore.getState()).toMatchObject({
       menuOpen: true,
@@ -252,6 +258,8 @@ describe('SessionController', () => {
       playMode: 'creative',
       multiplayerMode: 'solo',
       moonGravity: false,
+      bouncyBlocks: false,
+      slowMotion: false,
       survivalWave: 1,
     });
     expect(deps.companion.setMode).toHaveBeenLastCalledWith('solo');

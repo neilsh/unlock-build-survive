@@ -22,6 +22,11 @@ export interface SimOptions {
   customDisaster?: ModDisasterDef;
   gravityMultiplier?: number;
   durationSeconds?: number;
+  /** Disaster add-ons (see types/addons.ts); each is a no-op when omitted. */
+  blockRestitution?: number;
+  projectileScale?: number;
+  spawnRateMultiplier?: number;
+  timeScale?: number;
 }
 
 export interface PhysicsEvents {

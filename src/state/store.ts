@@ -3,6 +3,7 @@ import { BASE_MATERIALS } from '../types/materials';
 import { BASE_PRESETS } from '../types/presets';
 import { BASE_GEAR, DEFAULT_WEAPON } from '../types/gear';
 import { DEFAULT_AUDIO_SETTINGS } from './audioSettings';
+import { DISASTER_ADDONS_OFF } from '../types/addons';
 import type { UIState } from '../types/ui';
 import { createStore, useStoreSelector } from './createStore';
 
@@ -13,6 +14,7 @@ export const uiStore = createStore<UIState>({
   moonGravity: false,
   turboMode: false,
   megaStorm: false,
+  ...DISASTER_ADDONS_OFF,
   multiplayerMode: 'solo',
   battleTurn: 1,
   battleRound: 1,

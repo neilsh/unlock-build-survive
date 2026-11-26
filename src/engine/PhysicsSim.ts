@@ -269,6 +269,10 @@ class SimRun implements SimContext {
   readonly customDisaster?: ModDisasterDef;
   readonly gravity: number;
   readonly duration: number;
+  readonly spawnRate: number;
+  readonly projectileScale: number;
+  readonly blockRestitution: number | null;
+  readonly timeScale: number;
 
   mode: Telemetry['mode'] = 'simulating';
   time = 0;
@@ -298,6 +302,10 @@ class SimRun implements SimContext {
     this.customDisaster = options?.customDisaster;
     this.gravity = T.gravity * (options?.gravityMultiplier ?? 1);
     this.duration = options?.durationSeconds ?? DISASTER_SECONDS;
+    this.spawnRate = options?.spawnRateMultiplier ?? 1;
+    this.projectileScale = options?.projectileScale ?? 1;
+    this.blockRestitution = options?.blockRestitution ?? null;
+    this.timeScale = options?.timeScale ?? 1;
     const customColor = this.customDisaster?.color ?? 0x84cc16;
     this.projectileMats = createProjectileMaterials(customColor);
 
@@ -381,7 +389,7 @@ class SimRun implements SimContext {
 
   update(dtSeconds: number) {
     if (!this.running) return;
-    this.accumulator += Math.min(Math.max(dtSeconds, 0), T.maxFrameDt);
+    this.accumulator += Math.min(Math.max(dtSeconds, 0), T.maxFrameDt) * this.timeScale;
     while (this.running && this.accumulator >= T.step - 1e-9) {
       this.accumulator -= T.step;
       this.stepOnce();

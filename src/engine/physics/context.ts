@@ -42,6 +42,10 @@ export interface SimContext {
   readonly customDisaster?: ModDisasterDef;
   readonly gravity: number;
   readonly duration: number;
+  /** Disaster add-on knobs (neutral values when no add-on is on). */
+  readonly spawnRate: number;
+  readonly projectileScale: number;
+  readonly blockRestitution: number | null;
   readonly disaster: DisasterType;
   /** Disaster force multiplier from the strength level. */
   readonly power: number;

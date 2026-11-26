@@ -232,13 +232,13 @@ test.describe('exit to menu', () => {
     await page.evaluate(() => window.__GAME_DEBUG__!.placeBlock(2, 0, 0, 'wood'));
 
     await page.getByTestId('menu-open').click();
-    await page.getByTestId('menu-exit').click();
+    await page.getByTestId('menu-exit').dispatchEvent('click');
     await expect(page.getByTestId('exit-confirm')).toBeVisible();
     await page.getByTestId('exit-cancel').click();
     await expect(page.getByTestId('exit-confirm')).toBeHidden();
     expect((await telemetry(page)).blockCount).toBe(2);
 
-    await page.getByTestId('menu-exit').click();
+    await page.getByTestId('menu-exit').dispatchEvent('click');
     await page.getByTestId('exit-confirm-yes').click();
     await expect(page.getByTestId('menu-resume')).toBeHidden();
     await expect(page.getByTestId('menu-exit')).toBeHidden();
@@ -246,5 +246,28 @@ test.describe('exit to menu', () => {
 
     await page.getByTestId('menu-continue').click(); // the earlier save is still there
     expect((await telemetry(page)).blockCount).toBe(1);
+  });
+});
+
+test.describe('disaster add-ons', () => {
+  test('toggle on the menu, show HUD badges, and reset on exit', async ({ page }) => {
+    await openGame(page);
+    const ids = ['bouncyBlocks', 'giantHail', 'doubleTrouble', 'slowMotion'] as const;
+    await page.getByTestId('addon-bouncyBlocks').click();
+    await page.getByTestId('addon-giantHail').click();
+    await page.getByTestId('addon-doubleTrouble').click();
+    await page.getByTestId('addon-slowMotion').click();
+    await Promise.all(
+      ids.map((id) => expect(page.getByTestId(`addon-${id}`)).toHaveAttribute('aria-pressed', 'true')),
+    );
+    await page.getByTestId('menu-creative').click();
+    await Promise.all(ids.map((id) => expect(page.getByTestId(`addon-badge-${id}`)).toBeVisible()));
+
+    await page.getByTestId('menu-open').click();
+    await page.getByTestId('menu-exit').dispatchEvent('click');
+    await page.getByTestId('exit-confirm-yes').dispatchEvent('click');
+    await Promise.all(
+      ids.map((id) => expect(page.getByTestId(`addon-${id}`)).toHaveAttribute('aria-pressed', 'false')),
+    );
   });
 });

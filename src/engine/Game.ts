@@ -40,6 +40,7 @@ import { GamepadManager } from './GamepadManager';
 import { MenuNavigator } from './MenuNavigator';
 import { HelperAnimals } from './HelperAnimals';
 import { PHYSICS_TUNING, PhysicsSim, type SimOptions } from './PhysicsSim';
+import { disasterAddonSimOptions } from '../types/addons';
 import { ProceduralAssets } from './ProceduralAssets';
 import { AudioSynth } from './AudioSynth';
 import { loadAudioSettings, saveAudioSettings } from '../state/audioSettings';
@@ -719,6 +720,8 @@ export class Game implements GameActions, GameDebugApi {
         durationSeconds: s0.megaStorm ? 14 : DISASTER_SECONDS,
       };
     }
+    const addonOptions = disasterAddonSimOptions(s0);
+    if (Object.keys(addonOptions).length > 0) options = { ...options, ...addonOptions };
     this.currentRunDuration = options?.durationSeconds ?? DISASTER_SECONDS;
     await this.physics.start(this.build.getGraph(), this.build.meshes, type, seed, strength, options);
     if (token !== this.runToken) this.physics.stop(); // rewound while Rapier was loading

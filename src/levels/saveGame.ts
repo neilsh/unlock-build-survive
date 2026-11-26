@@ -17,12 +17,13 @@ import {
   isStrutValid,
   strutId,
 } from '../types/blueprint';
+import { pickDisasterAddons, type DisasterAddonFlags } from '../types/addons';
 import type { MultiplayerMode, PlayMode } from '../types/ui';
 import type { StorageLike } from './progress';
 
 export const SAVE_GAME_KEY = 'ubs:save:v1';
 
-export interface SavedGame {
+export interface SavedGame extends Partial<DisasterAddonFlags> {
   version: 1;
   savedAt: number;
   graph: BlueprintGraph;
@@ -174,6 +175,7 @@ export function loadGameState(storage: StorageLike | null = defaultStorage()): S
       moonGravity: obj.get('moonGravity') === true,
       turboMode: obj.get('turboMode') === true,
       megaStorm: obj.get('megaStorm') === true,
+      ...pickDisasterAddons(Object.fromEntries(obj)),
       multiplayerMode: isMultiplayerMode(rawMp) ? rawMp : 'solo',
       disaster: typeof disaster === 'string' && disaster.trim() ? disaster : 'earthquake',
       strength: isStrength(rawStrength) ? rawStrength : DEFAULT_STRENGTH,

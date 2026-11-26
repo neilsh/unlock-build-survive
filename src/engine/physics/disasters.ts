@@ -123,7 +123,7 @@ export function applyFlood(ctx: SimContext, reset = true) {
 
 export function applyHail(ctx: SimContext) {
   const h = T.hail;
-  ctx.spawnAccumulator += h.perSecond * ctx.power * envelope(ctx.time, ctx.duration) * T.step;
+  ctx.spawnAccumulator += h.perSecond * ctx.power * envelope(ctx.time, ctx.duration) * ctx.spawnRate * T.step;
   while (ctx.spawnAccumulator >= 1) {
     ctx.spawnAccumulator -= 1;
     spawnHail(ctx);
@@ -134,7 +134,8 @@ export function applyHail(ctx: SimContext) {
 export function applyFireTornado(ctx: SimContext) {
   const ft = T.fire_tornado;
   applyWindForce(ctx, ft.windForce, ft.swirlSpeed);
-  ctx.spawnAccumulator += ft.perSecond * ctx.power * envelope(ctx.time, ctx.duration) * T.step;
+  ctx.spawnAccumulator +=
+    ft.perSecond * ctx.power * envelope(ctx.time, ctx.duration) * ctx.spawnRate * T.step;
   while (ctx.spawnAccumulator >= 1) {
     ctx.spawnAccumulator -= 1;
     const angle = ctx.flowAngle + (ctx.rng() - 0.5) * 2.2;
@@ -151,7 +152,8 @@ export function applyFireTornado(ctx: SimContext) {
 export function applySnowStorm(ctx: SimContext) {
   const sn = T.snow_storm;
   const { wx, wz } = applyWindForce(ctx, sn.windForce, ctx.flowSpin);
-  ctx.spawnAccumulator += sn.perSecond * ctx.power * envelope(ctx.time, ctx.duration) * T.step;
+  ctx.spawnAccumulator +=
+    sn.perSecond * ctx.power * envelope(ctx.time, ctx.duration) * ctx.spawnRate * T.step;
   while (ctx.spawnAccumulator >= 1) {
     ctx.spawnAccumulator -= 1;
     const b = ctx.spawnBox;
@@ -167,7 +169,8 @@ export function applySnowStorm(ctx: SimContext) {
 
 export function applyRaid(ctx: SimContext) {
   const rd = T.raid;
-  ctx.spawnAccumulator += rd.perSecond * ctx.power * envelope(ctx.time, ctx.duration) * T.step;
+  ctx.spawnAccumulator +=
+    rd.perSecond * ctx.power * envelope(ctx.time, ctx.duration) * ctx.spawnRate * T.step;
   while (ctx.spawnAccumulator >= 1) {
     ctx.spawnAccumulator -= 1;
     const angle = ctx.rng() * Math.PI * 2;
@@ -182,7 +185,8 @@ export function applyRaid(ctx: SimContext) {
 
 export function applyMeteor(ctx: SimContext) {
   const mt = T.meteor;
-  ctx.spawnAccumulator += mt.perSecond * ctx.power * envelope(ctx.time, ctx.duration) * T.step;
+  ctx.spawnAccumulator +=
+    mt.perSecond * ctx.power * envelope(ctx.time, ctx.duration) * ctx.spawnRate * T.step;
   while (ctx.spawnAccumulator >= 1) {
     ctx.spawnAccumulator -= 1;
     const b = ctx.spawnBox;
@@ -206,7 +210,7 @@ export function applyCustomDisaster(ctx: SimContext, def: ModDisasterDef) {
   if (def.projectiles) {
     const p = def.projectiles;
     const env = envelope(ctx.time, ctx.duration);
-    ctx.spawnAccumulator += p.rate * ctx.power * env * T.step;
+    ctx.spawnAccumulator += p.rate * ctx.power * env * ctx.spawnRate * T.step;
     while (ctx.spawnAccumulator >= 1) {
       ctx.spawnAccumulator -= 1;
       const speed = p.speed * Math.sqrt(ctx.power);

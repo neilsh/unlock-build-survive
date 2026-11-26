@@ -9,6 +9,7 @@ import { getSurvivalWave } from '../../levels/survival';
 import { modStore } from '../../mods/modStore';
 import { parseImportedMod, saveMods, type GameMod } from '../../mods/mods';
 import { uiStore } from '../../state/store';
+import { DISASTER_ADDONS_OFF, pickDisasterAddons } from '../../types/addons';
 import {
   DEFAULT_STRENGTH,
   GRID_CELLS,
@@ -227,6 +228,7 @@ export class SessionController {
       moonGravity: s.moonGravity,
       turboMode: s.turboMode,
       megaStorm: s.megaStorm,
+      ...pickDisasterAddons(s),
       multiplayerMode: s.multiplayerMode,
       disaster: s.disaster,
       strength: s.strength,
@@ -268,6 +270,7 @@ export class SessionController {
       moonGravity: false,
       turboMode: false,
       megaStorm: false,
+      ...DISASTER_ADDONS_OFF,
       multiplayerMode: 'solo',
       battleTurn: 1,
       battleRound: 1,
@@ -326,6 +329,7 @@ export class SessionController {
       moonGravity: Boolean(saved.moonGravity),
       turboMode: Boolean(saved.turboMode),
       megaStorm: Boolean(saved.megaStorm),
+      ...pickDisasterAddons(saved),
       multiplayerMode: saved.multiplayerMode,
       disaster: saved.disaster,
       strength: saved.strength,
