@@ -7,7 +7,7 @@ import { P1_BODY_LAYER } from './PlayerBody';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import type { Azimuth, DisasterType, ProjectileKind, Vec3 } from '../types/blueprint';
-import { ISLAND_SIZE } from '../types/blueprint';
+import { getIslandSize } from '../types/blueprint';
 import { mulberry32 } from '../utils/rng';
 import { DisasterEffects, type CustomDisasterFx } from './Effects';
 
@@ -76,7 +76,7 @@ export class SceneManager {
   readonly buildRoot = new THREE.Group();
   /** Flat top face of the island (y = 0). Raycast against this for placing on the ground. */
   readonly islandTop = new THREE.Mesh(
-    new THREE.PlaneGeometry(ISLAND_SIZE, ISLAND_SIZE).rotateX(-Math.PI / 2),
+    new THREE.PlaneGeometry(getIslandSize(), getIslandSize()).rotateX(-Math.PI / 2),
     new THREE.MeshBasicMaterial({ visible: false }),
   );
   readonly domElement: HTMLCanvasElement;
@@ -97,6 +97,9 @@ export class SceneManager {
   private orbitMode = true;
   private readonly savedOrbitPos = new THREE.Vector3();
   private readonly savedOrbitTarget = new THREE.Vector3();
+  /** Grass slab, dirt cone, rocks and flowers; rebuilt when the island size changes. */
+  private readonly islandGroup = new THREE.Group();
+  private sun: THREE.DirectionalLight | null = null;
   private disposed = false;
   private splitScreen = false;
 
@@ -411,23 +414,48 @@ export class SceneManager {
     sun.position.set(14, 26, 10);
     sun.castShadow = true;
     sun.shadow.mapSize.set(2048, 2048);
-    const half = ISLAND_SIZE * 0.9;
-    Object.assign(sun.shadow.camera, {
-      left: -half,
-      right: half,
-      top: half,
-      bottom: -half,
-      near: 1,
-      far: 70,
-    });
+    this.sun = sun;
+    this.fitSunShadow();
     sun.shadow.radius = 4;
     sun.shadow.bias = -0.0004;
     sun.shadow.normalBias = 0.03;
     this.scene.add(sun);
   }
 
+  /** Fits the sun's shadow box to the active island. */
+  private fitSunShadow(): void {
+    if (!this.sun) return;
+    const half = getIslandSize() * 0.9;
+    Object.assign(this.sun.shadow.camera, {
+      left: -half,
+      right: half,
+      top: half,
+      bottom: -half,
+      near: 1,
+      far: 70 + half,
+    });
+    this.sun.shadow.camera.updateProjectionMatrix();
+  }
+
+  /** Rebuilds the island visuals and ground-pick plane for the active island size (see `setIslandCells`). */
+  refreshIsland(): void {
+    for (const child of this.islandGroup.children.toSpliced(0, 0)) {
+      this.islandGroup.remove(child);
+      child.traverse((o) => {
+        if (o instanceof THREE.Mesh) {
+          o.geometry.dispose();
+          for (const m of [o.material].flat()) m.dispose();
+        }
+      });
+    }
+    this.islandTop.geometry.dispose();
+    this.islandTop.geometry = new THREE.PlaneGeometry(getIslandSize(), getIslandSize()).rotateX(-Math.PI / 2);
+    this.buildIsland();
+    this.fitSunShadow();
+  }
+
   private buildIsland(): void {
-    const w = ISLAND_SIZE + 3;
+    const w = getIslandSize() + 3;
     // Grass slab: rounded square, top face at y = 0.
     const slab = new THREE.Mesh(
       new THREE.ExtrudeGeometry(roundedRect(w, 2.5), {
@@ -461,7 +489,7 @@ export class SceneManager {
     for (let i = 0; i < 6; i++) {
       const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(0.35 + r() * 0.35, 0), rockMat);
       const a = r() * Math.PI * 2;
-      const d = ISLAND_SIZE / 2 + 0.2 + r() * 0.8;
+      const d = getIslandSize() / 2 + 0.2 + r() * 0.8;
       rock.position.set(Math.cos(a) * d, -0.2 - r() * 0.2, Math.sin(a) * d);
       rock.rotation.set(r() * 3, r() * 3, r() * 3);
       rock.castShadow = true;
@@ -477,8 +505,8 @@ export class SceneManager {
     for (let i = 0; i < 24; i++) {
       const f = new THREE.Mesh(flowerGeo, flowerMats[i % flowerMats.length]);
       const side = Math.floor(r() * 4);
-      const along = (r() - 0.5) * (ISLAND_SIZE + 1);
-      const out = ISLAND_SIZE / 2 + 0.35 + r() * 0.5;
+      const along = (r() - 0.5) * (getIslandSize() + 1);
+      const out = getIslandSize() / 2 + 0.35 + r() * 0.5;
       const [x, z] = [
         [along, out],
         [along, -out],
@@ -489,7 +517,8 @@ export class SceneManager {
       flowers.add(f);
     }
 
-    this.scene.add(slab, dirt, rocks, flowers);
+    this.islandGroup.add(slab, dirt, rocks, flowers);
+    if (!this.islandGroup.parent) this.scene.add(this.islandGroup);
   }
 
   private buildClouds(): void {

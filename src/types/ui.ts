@@ -11,7 +11,7 @@ import type {
 import type { ArmorId, GearId, GearSlot, WeaponId } from './gear';
 import type { GameMod } from '../mods/mods';
 
-export type PlayMode = 'creative' | 'survival';
+export type PlayMode = 'creative' | 'survival' | 'village';
 export type MultiplayerMode = 'solo' | 'coop' | 'split' | 'battle' | 'bot';
 
 /** Modes where a second human drives the Player 2 avatar (shared screen `coop`, or own view `split`). */
@@ -40,6 +40,17 @@ export interface UIState {
   survivalOver: boolean;
   survivalFailReason: string | null;
   survivalLastReward: number;
+  /** Village Island: current round, villagers living there / still standing, and spare shelter beds. */
+  villageRound: number;
+  villagePopulation: number;
+  villageAlive: number;
+  villageBeds: number;
+  villageBestRound: number;
+  /** True once a villager was knocked out (any death loses the village). */
+  villageOver: boolean;
+  villageFailReason: string | null;
+  /** True when every villager got through the current round's disaster. */
+  villageCleared: boolean;
   tool: ToolType;
   material: MaterialType;
   mirrorX: boolean;

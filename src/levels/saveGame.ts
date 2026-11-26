@@ -8,8 +8,12 @@ import {
   STRENGTH_ORDER,
   blockId,
   cellInBounds,
+  GRID_CELLS,
+  VILLAGE_GRID_CELLS,
   cloneGraph,
   cornerInBounds,
+  getGridCells,
+  setIslandCells,
   isStrutValid,
   strutId,
 } from '../types/blueprint';
@@ -35,6 +39,9 @@ export interface SavedGame {
   battleRound: number;
   battleP1Score: number;
   battleP2Score: number;
+  /** Village Island only: the round reached and how many villagers lived there. */
+  villageRound?: number;
+  villagePopulation?: number;
 }
 
 function defaultStorage(): StorageLike | null {
@@ -136,7 +143,16 @@ export function loadGameState(storage: StorageLike | null = defaultStorage()): S
     const parsed: unknown = JSON.parse(raw);
     const obj = asFieldMap(parsed);
     if (!obj) return null;
-    const graph = sanitizeGraph(obj.get('graph'));
+    const isVillage = obj.get('playMode') === 'village';
+    // Village Island saves use the big island, so check the build against that size.
+    const previousCells = getGridCells();
+    setIslandCells(isVillage ? VILLAGE_GRID_CELLS : GRID_CELLS);
+    let graph: BlueprintGraph | null;
+    try {
+      graph = sanitizeGraph(obj.get('graph'));
+    } finally {
+      setIslandCells(previousCells);
+    }
     if (!graph) return null;
     const savedAt = obj.get('savedAt');
     const disaster = obj.get('disaster');
@@ -146,7 +162,7 @@ export function loadGameState(storage: StorageLike | null = defaultStorage()): S
       version: 1,
       savedAt: typeof savedAt === 'number' && Number.isFinite(savedAt) ? savedAt : 0,
       graph,
-      playMode: obj.get('playMode') === 'survival' ? 'survival' : 'creative',
+      playMode: isVillage ? 'village' : obj.get('playMode') === 'survival' ? 'survival' : 'creative',
       exploreMode: obj.get('exploreMode') === true,
       moonGravity: obj.get('moonGravity') === true,
       turboMode: obj.get('turboMode') === true,
@@ -159,6 +175,12 @@ export function loadGameState(storage: StorageLike | null = defaultStorage()): S
       battleRound: toPosInt(obj.get('battleRound'), 1),
       battleP1Score: toNonNegInt(obj.get('battleP1Score'), 0),
       battleP2Score: toNonNegInt(obj.get('battleP2Score'), 0),
+      ...(isVillage
+        ? {
+            villageRound: toPosInt(obj.get('villageRound'), 1),
+            villagePopulation: toPosInt(obj.get('villagePopulation'), 1),
+          }
+        : {}),
     };
   } catch {
     return null;

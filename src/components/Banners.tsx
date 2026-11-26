@@ -26,8 +26,69 @@ export function Banners({ actions }: { actions: GameActions }) {
     survivalLastReward: u.survivalLastReward,
     survivalOver: u.survivalOver,
     survivalWave: u.survivalWave,
+    villageAlive: u.villageAlive,
+    villageBestRound: u.villageBestRound,
+    villageCleared: u.villageCleared,
+    villageFailReason: u.villageFailReason,
+    villageOver: u.villageOver,
+    villagePopulation: u.villagePopulation,
+    villageRound: u.villageRound,
   }));
   const isSurvival = s.playMode === 'survival' && s.levelId === null;
+  const isVillage = s.playMode === 'village' && s.levelId === null;
+
+  if (isVillage) {
+    if (s.villageOver) {
+      return (
+        <div
+          data-testid="village-over-banner"
+          role="status"
+          className="pointer-events-auto flex flex-col items-center gap-2.5 rounded-3xl bg-white/95 px-6 py-4 text-center text-sky-950 shadow-2xl"
+        >
+          <div className="flex items-center gap-2 text-rose-600">
+            <Skull size={32} aria-hidden="true" />
+            <span data-testid="lose-banner" className="text-2xl font-black">
+              Round {s.villageRound}: Village Lost
+            </span>
+          </div>
+          <span className="text-sm font-bold text-sky-900">{s.villageFailReason}</span>
+          <button
+            type="button"
+            data-testid="village-retry"
+            onClick={() => actions.toggleDisaster()}
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-2xl bg-rose-500 px-4 py-2 text-sm font-black text-white shadow-md hover:bg-rose-400 active:scale-95"
+          >
+            <RotateCcw size={16} aria-hidden="true" />
+            Try again from Round 1
+          </button>
+        </div>
+      );
+    }
+    if (s.villageCleared) {
+      return (
+        <div
+          data-testid="village-cleared-banner"
+          role="status"
+          className="pointer-events-auto flex flex-col items-center gap-2 rounded-3xl bg-white/95 px-6 py-4 text-center text-sky-950 shadow-2xl"
+        >
+          <span data-testid="win-banner" className="text-2xl font-black text-emerald-700">
+            Round {s.villageRound} Cleared!
+          </span>
+          <span className="text-sm font-bold">All {s.villageAlive} villagers are safe.</span>
+          <button
+            type="button"
+            data-testid="village-next-round"
+            onClick={() => actions.toggleDisaster()}
+            className="mt-1 inline-flex min-h-11 items-center gap-1.5 rounded-2xl bg-emerald-400 px-5 py-2 text-sm font-black text-emerald-950 shadow-md hover:bg-emerald-300 active:scale-95"
+          >
+            <Play size={16} fill="currentColor" aria-hidden="true" />
+            Next Round (Round {s.villageRound + 1})
+          </button>
+        </div>
+      );
+    }
+    return null;
+  }
 
   if (isSurvival && s.survivalOver) {
     return (

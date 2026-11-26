@@ -51,7 +51,7 @@ import type {
   Telemetry,
   Vec3,
 } from '../types/blueprint';
-import { DEFAULT_STRENGTH, DISASTER_SECONDS, ISLAND_SIZE } from '../types/blueprint';
+import { DEFAULT_STRENGTH, DISASTER_SECONDS, getIslandSize } from '../types/blueprint';
 import type { MaterialDef } from '../types/materials';
 import type { ModDisasterDef } from '../mods/mods';
 import type { WeaponDef } from '../types/gear';
@@ -186,6 +186,11 @@ export class PhysicsSim {
     return this.run ? helperPoses(this.run) : null;
   }
 
+  /** Ids of blocks that have lost their last intact link or drifted off (sticky for the run). */
+  getFallenBlockIds(): Set<string> {
+    return this.run?.fallenBlockIds() ?? new Set();
+  }
+
   /** Live world centers of active disaster projectiles. */
   getProjectilePositions(): Vec3[] {
     return this.run?.projectilePositions() ?? [];
@@ -301,7 +306,7 @@ class SimRun implements SimContext {
     world.numSolverIterations = T.solverIterations;
     this.world = world;
 
-    const half = ISLAND_SIZE / 2;
+    const half = getIslandSize() / 2;
     this.ground = world.createRigidBody(this.R.RigidBodyDesc.kinematicPositionBased());
     world.createCollider(
       this.R.ColliderDesc.cuboid(half, 1, half).setTranslation(0, -1, 0).setFriction(1),
@@ -355,6 +360,12 @@ class SimRun implements SimContext {
       const p = b.body.translation();
       out.push([p.x, p.y, p.z]);
     }
+    return out;
+  }
+
+  fallenBlockIds(): Set<string> {
+    const out = new Set<string>();
+    for (const b of this.blocks) if (b.fallen) out.add(b.data.id);
     return out;
   }
 

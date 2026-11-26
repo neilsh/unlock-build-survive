@@ -96,7 +96,7 @@ export function P2Panel({ actions }: { actions: GameActions }) {
               />
             ))}
             {level === undefined &&
-              s.playMode !== 'survival' &&
+              s.playMode === 'creative' &&
               active.blocks.map((b) => (
                 <Chip
                   key={b.id}

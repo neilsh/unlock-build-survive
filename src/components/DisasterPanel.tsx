@@ -22,13 +22,18 @@ export function DisasterPanel({ actions }: { actions: GameActions }) {
     survivalOver: u.survivalOver,
     survivalWave: u.survivalWave,
     timeRemaining: u.timeRemaining,
+    villageCleared: u.villageCleared,
+    villageOver: u.villageOver,
+    villageRound: u.villageRound,
   }));
   const { active } = useMods();
   const building = s.mode === 'build';
   const isSurvival = s.playMode === 'survival' && s.levelId === null;
+  const isVillage = s.playMode === 'village' && s.levelId === null;
   // Challenge levels fix their own disaster; Survival picks waves automatically.
-  const canPick = building && s.levelId === null && !isSurvival;
-  const baseIdleSeconds = s.levelId === null && !isSurvival ? active.durationSeconds : DISASTER_SECONDS;
+  const canPick = building && s.levelId === null && !isSurvival && !isVillage;
+  const baseIdleSeconds =
+    s.levelId === null && !isSurvival && !isVillage ? active.durationSeconds : DISASTER_SECONDS;
   const idleSeconds = s.megaStorm ? Math.max(baseIdleSeconds, 14) : baseIdleSeconds;
   // Idle shows the full countdown; a finished run shows 0 instead of jumping back to 8.
   const seconds = building
@@ -36,18 +41,29 @@ export function DisasterPanel({ actions }: { actions: GameActions }) {
     : s.mode === 'simulating'
       ? Math.max(0, Math.ceil(s.timeRemaining))
       : 0;
-  const actionLabel = isSurvival
-    ? s.survivalOver
-      ? 'Retry Wave 1'
+  const actionLabel = isVillage
+    ? s.villageOver
+      ? 'Try again'
       : building
-        ? `Start Wave ${s.survivalWave}`
-        : s.mode === 'survived'
-          ? 'Next Wave'
+        ? `Start Round ${s.villageRound}`
+        : s.villageCleared
+          ? 'Next Round'
           : 'Rewind'
-    : building
-      ? 'Test it!'
-      : 'Rewind';
-  const isGoVariant = building || (isSurvival && (s.mode === 'survived' || s.survivalOver));
+    : isSurvival
+      ? s.survivalOver
+        ? 'Retry Wave 1'
+        : building
+          ? `Start Wave ${s.survivalWave}`
+          : s.mode === 'survived'
+            ? 'Next Wave'
+            : 'Rewind'
+      : building
+        ? 'Test it!'
+        : 'Rewind';
+  const isGoVariant =
+    building ||
+    (isSurvival && (s.mode === 'survived' || s.survivalOver)) ||
+    (isVillage && (s.villageCleared || s.villageOver));
 
   return (
     <section
@@ -70,6 +86,7 @@ export function DisasterPanel({ actions }: { actions: GameActions }) {
           ))}
           {s.levelId === null &&
             !isSurvival &&
+            !isVillage &&
             active.disasters.map((d) => (
               <Chip
                 key={d.id}

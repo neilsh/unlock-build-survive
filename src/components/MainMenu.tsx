@@ -6,6 +6,7 @@ import {
   DoorOpen,
   FolderOpen,
   Hammer,
+  Home,
   Map as MapIcon,
   Moon,
   Play,
@@ -340,7 +341,7 @@ export function MainMenu({ actions, onOpenChallenges, onOpenShop }: MainMenuProp
 
         <div className="flex flex-col gap-1.5">
           <span className="text-xs font-black uppercase tracking-wide text-sky-800">Game Modes</span>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <button
               type="button"
               data-testid="menu-creative"
@@ -407,6 +408,39 @@ export function MainMenu({ actions, onOpenChallenges, onOpenShop }: MainMenuProp
               </div>
               <span className="inline-flex w-fit items-center gap-1.5 rounded-2xl bg-rose-500 px-4 py-2 text-sm font-black text-white shadow-sm">
                 Play Survival
+              </span>
+            </button>
+
+            <button
+              type="button"
+              data-testid="menu-village"
+              onClick={() => actions.startPlayMode('village')}
+              className={`group flex flex-col justify-between gap-3 rounded-3xl p-5 text-left shadow-lg transition hover:-translate-y-0.5 active:scale-[0.98] ${
+                s.hasStarted && s.playMode === 'village'
+                  ? 'bg-emerald-100 ring-2 ring-emerald-400'
+                  : 'bg-white hover:bg-emerald-50'
+              }`}
+            >
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="flex size-12 items-center justify-center rounded-2xl bg-emerald-500 text-white shadow-sm">
+                    <Home size={24} aria-hidden="true" />
+                  </span>
+                  {s.villageBestRound > 0 && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-black text-emerald-900">
+                      <Trophy size={13} aria-hidden="true" />
+                      Best: Round {s.villageBestRound}
+                    </span>
+                  )}
+                </div>
+                <h2 className="text-xl font-black">Village Island</h2>
+                <p className="text-sm font-semibold text-sky-900">
+                  A big island with villagers who live there. Build houses so they can hide from each
+                  disaster. If any villager gets knocked out, you lose!
+                </p>
+              </div>
+              <span className="inline-flex w-fit items-center gap-1.5 rounded-2xl bg-emerald-500 px-4 py-2 text-sm font-black text-white shadow-sm">
+                Play Village
               </span>
             </button>
           </div>

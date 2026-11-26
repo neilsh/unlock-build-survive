@@ -9,7 +9,17 @@ import { getSurvivalWave } from '../../levels/survival';
 import { modStore } from '../../mods/modStore';
 import { parseImportedMod, saveMods, type GameMod } from '../../mods/mods';
 import { uiStore } from '../../state/store';
-import { DEFAULT_STRENGTH, emptyGraph, isBuiltinDisaster, type Vec3 } from '../../types/blueprint';
+import {
+  DEFAULT_STRENGTH,
+  GRID_CELLS,
+  VILLAGE_GRID_CELLS,
+  emptyGraph,
+  getGridCells,
+  isBuiltinDisaster,
+  type BlueprintGraph,
+  type Vec3,
+} from '../../types/blueprint';
+import { VILLAGE_CONSTRAINTS, getVillageRound } from '../../levels/village';
 import { isBuiltinMaterial } from '../../types/materials';
 import {
   isTwoPlayerCoop,
@@ -25,7 +35,16 @@ import type { FirstPersonController } from '../FirstPersonController';
 import type { ProceduralAssets } from '../ProceduralAssets';
 import type { ProgressionController } from './ProgressionController';
 
+/** What the session needs from the Village Island controller (optional so headless fakes can omit it). */
+export interface VillageHooks {
+  enter(round?: number, population?: number): void;
+  leave(): void;
+}
+
 export interface SessionDeps {
+  village?: VillageHooks;
+  /** Switches the build island size and re-fits the scene (Game implements it). */
+  setIsland?(cells: number): void;
   audio: Pick<AudioSynth, 'resume' | 'playUnlock'>;
   assets: Pick<ProceduralAssets, 'setCustomMaterials'>;
   build: Pick<
@@ -94,11 +113,30 @@ export class SessionController {
     return { ok: true };
   };
 
+  /** Back to the standard 8x8 island (clearing a bigger village build) when leaving Village Island. */
+  private restoreDefaultIsland(): void {
+    this.d.village?.leave();
+    if (getGridCells() === GRID_CELLS) return;
+    this.d.setIsland?.(GRID_CELLS);
+    this.d.build.loadGraph(emptyGraph());
+  }
+
+  /** Switches to the big island with the village build limits and starts the villagers. */
+  private enterVillage(graph: BlueprintGraph | null, round: number, population?: number): void {
+    this.d.setIsland?.(VILLAGE_GRID_CELLS);
+    this.d.build.setConstraints(null);
+    this.d.build.loadGraph(graph ?? emptyGraph());
+    this.d.build.setConstraints(VILLAGE_CONSTRAINTS);
+    uiStore.setState({ villageOver: false, villageFailReason: null, villageCleared: false });
+    this.d.village?.enter(round, population);
+  }
+
   /** Starts a challenge level (fresh island, its limits, disaster and strength) or free build with null. */
   selectLevel: GameActions['selectLevel'] = (id) => {
     this.d.ensureBuildMode();
     const level = id ? getLevel(id) : undefined;
     if (level && !uiStore.getState().unlocked.includes(level.id)) return;
+    this.restoreDefaultIsland();
     levelStore.setState({ notice: null, justUnlocked: null });
     const s0 = uiStore.getState();
     if (!level) {
@@ -191,6 +229,8 @@ export class SessionController {
       battleRound: s.battleRound,
       battleP1Score: s.battleP1Score,
       battleP2Score: s.battleP2Score,
+      villageRound: s.villageRound,
+      villagePopulation: s.villagePopulation,
     });
     if (!ok) {
       levelStore.setState({ notice: 'Could not save right now (browser storage blocked).' });
@@ -209,6 +249,7 @@ export class SessionController {
    */
   exitToMenu: GameActions['exitToMenu'] = () => {
     this.d.ensureBuildMode(); // rewinds any running or finished disaster
+    this.restoreDefaultIsland();
     this.d.build.setConstraints(null);
     this.d.build.loadGraph(emptyGraph());
     this.d.progression.resetSurvivalRewards();
@@ -231,6 +272,9 @@ export class SessionController {
       survivalWave: 1,
       survivalOver: false,
       survivalFailReason: null,
+      villageOver: false,
+      villageCleared: false,
+      villageFailReason: null,
       survivalLastReward: 0,
       levelId: null,
       disaster: 'earthquake',
@@ -255,8 +299,13 @@ export class SessionController {
       return;
     }
     this.d.ensureBuildMode();
-    this.d.build.setConstraints(null);
-    this.d.build.loadGraph(saved.graph);
+    if (saved.playMode === 'village') {
+      this.enterVillage(saved.graph, saved.villageRound ?? 1, saved.villagePopulation);
+    } else {
+      this.restoreDefaultIsland();
+      this.d.build.setConstraints(null);
+      this.d.build.loadGraph(saved.graph);
+    }
     this.d.companion.setMode(saved.multiplayerMode);
     this.d.firstPerson.setArrowKeysEnabled(!isTwoPlayerCoop(saved.multiplayerMode));
     const s0 = uiStore.getState();
@@ -352,6 +401,11 @@ export class SessionController {
 
   startPlayMode: GameActions['startPlayMode'] = (mode: PlayMode) => {
     this.d.ensureBuildMode();
+    if (mode === 'village') {
+      this.startVillage();
+      return;
+    }
+    this.restoreDefaultIsland();
     this.d.build.setConstraints(null);
     levelStore.setState({ notice: null, justUnlocked: null });
     const s0 = uiStore.getState();
@@ -403,6 +457,43 @@ export class SessionController {
     this.d.syncBuildEnabled();
     this.d.syncInputPaused();
   };
+
+  /** Village Island: a fresh, empty big island with the first round queued up. */
+  private startVillage(): void {
+    levelStore.setState({ notice: null, justUnlocked: null });
+    const s0 = uiStore.getState();
+    this.enterVillage(null, 1);
+    let nextMaterial = s0.material;
+    if (!isBuiltinMaterial(nextMaterial) || !s0.unlockedMaterials.includes(nextMaterial)) {
+      nextMaterial = 'wood';
+    }
+    this.d.build.setMaterial(nextMaterial);
+    const nextArmor =
+      s0.equippedArmor && s0.unlockedGear.includes(s0.equippedArmor) ? s0.equippedArmor : null;
+    const nextWeapon =
+      s0.equippedWeapon && s0.unlockedGear.includes(s0.equippedWeapon) ? s0.equippedWeapon : null;
+    const playerMaxHp = this.d.progression.computeMaxHp(nextArmor);
+    const round = getVillageRound(1);
+    uiStore.setState({
+      playMode: 'village',
+      levelId: null,
+      menuOpen: false,
+      hasStarted: true,
+      survivalOver: false,
+      survivalFailReason: null,
+      survivalLastReward: 0,
+      disaster: round.disaster,
+      strength: round.strength,
+      material: nextMaterial,
+      equippedArmor: nextArmor,
+      equippedWeapon: nextWeapon,
+      playerMaxHp,
+      playerHp: playerMaxHp,
+    });
+    this.d.firstPerson.spawn(this.d.currentBlockCenters());
+    this.d.syncBuildEnabled();
+    this.d.syncInputPaused();
+  }
 
   nextSurvivalWave: GameActions['nextSurvivalWave'] = () => {
     const s = uiStore.getState();

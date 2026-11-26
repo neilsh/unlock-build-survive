@@ -51,10 +51,30 @@ export type ToolType = 'block' | 'brace' | 'paint' | 'erase';
 export type Azimuth = 0 | 90 | 180 | 270;
 
 export const CELL_SIZE = 2;
-/** 16x16 world-unit build area = 8x8 cells. */
+/** 16x16 world-unit build area = 8x8 cells. This is the default island; see `setIslandCells`. */
 export const GRID_CELLS = 8;
 export const MAX_HEIGHT_CELLS = 8;
 export const ISLAND_SIZE = GRID_CELLS * CELL_SIZE;
+/** The bigger Village Island: 14x14 cells (28x28 world units), roughly three times the build area. */
+export const VILLAGE_GRID_CELLS = 14;
+
+/**
+ * Active build-area width in cells. Every level and mode uses the default 8x8 island except Village
+ * Island, which switches it for the session. Engine and helpers read the island through the getters
+ * below so the default island behaves exactly as before.
+ */
+let activeCells = GRID_CELLS;
+
+/** Switches the active island size (clamped to 4..24 whole cells). */
+export function setIslandCells(cells: number): void {
+  activeCells = Number.isFinite(cells) ? Math.min(24, Math.max(4, Math.round(cells))) : GRID_CELLS;
+}
+
+/** Active island width in cells (GRID_CELLS unless Village Island is running). */
+export const getGridCells = (): number => activeCells;
+
+/** Active island width in world units. */
+export const getIslandSize = (): number => activeCells * CELL_SIZE;
 /** Length of every disaster run, in seconds. Survive this long with zero broken joints to win. */
 export const DISASTER_SECONDS = 8;
 
@@ -136,14 +156,19 @@ export function strutId(a: Vec3, b: Vec3) {
 }
 
 export const cellInBounds = (c: Vec3) =>
-  c[0] >= 0 && c[0] < GRID_CELLS && c[2] >= 0 && c[2] < GRID_CELLS && c[1] >= 0 && c[1] < MAX_HEIGHT_CELLS;
+  c[0] >= 0 && c[0] < activeCells && c[2] >= 0 && c[2] < activeCells && c[1] >= 0 && c[1] < MAX_HEIGHT_CELLS;
 
 export const cornerInBounds = (k: Vec3) =>
-  k[0] >= 0 && k[0] <= GRID_CELLS && k[2] >= 0 && k[2] <= GRID_CELLS && k[1] >= 0 && k[1] <= MAX_HEIGHT_CELLS;
+  k[0] >= 0 &&
+  k[0] <= activeCells &&
+  k[2] >= 0 &&
+  k[2] <= activeCells &&
+  k[1] >= 0 &&
+  k[1] <= MAX_HEIGHT_CELLS;
 
 /** World-space centre of a cell. */
 export function cellToWorld(c: Vec3): Vec3 {
-  const half = ISLAND_SIZE / 2;
+  const half = getIslandSize() / 2;
   return [
     c[0] * CELL_SIZE - half + CELL_SIZE / 2,
     c[1] * CELL_SIZE + CELL_SIZE / 2,
@@ -153,7 +178,7 @@ export function cellToWorld(c: Vec3): Vec3 {
 
 /** World-space position of a corner lattice point. */
 export function cornerToWorld(k: Vec3): Vec3 {
-  const half = ISLAND_SIZE / 2;
+  const half = getIslandSize() / 2;
   return [k[0] * CELL_SIZE - half, k[1] * CELL_SIZE, k[2] * CELL_SIZE - half];
 }
 
@@ -166,8 +191,14 @@ export function cellCorners(c: Vec3): Vec3[] {
 }
 
 /** Mirror across the island's centre plane x = ISLAND_SIZE/2 (used by mirror-X build mode). */
-export const mirrorCellX = (c: Vec3): Vec3 => [GRID_CELLS - 1 - c[0], c[1], c[2]];
-export const mirrorCornerX = (k: Vec3): Vec3 => [GRID_CELLS - k[0], k[1], k[2]];
+export const mirrorCellX = (c: Vec3): Vec3 => [activeCells - 1 - c[0], c[1], c[2]];
+export const mirrorCornerX = (k: Vec3): Vec3 => [activeCells - k[0], k[1], k[2]];
+
+/** Inverse of `cellToWorld` for ground positions: the cell column (x, z) containing world (wx, wz). */
+export function worldToCell(wx: number, wz: number): [number, number] {
+  const half = getIslandSize() / 2;
+  return [Math.floor((wx + half) / CELL_SIZE), Math.floor((wz + half) / CELL_SIZE)];
+}
 
 /** Blocks that have corner `k` as one of their 8 corners, sorted by id. */
 export function blocksAtCorner(g: BlueprintGraph, k: Vec3): BlockData[] {

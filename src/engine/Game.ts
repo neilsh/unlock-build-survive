@@ -21,7 +21,7 @@ import type {
   Vec3,
 } from '../types/blueprint';
 import type { GameActions } from '../types/ui';
-import { DEFAULT_STRENGTH, DISASTER_SECONDS, cellToWorld } from '../types/blueprint';
+import { DEFAULT_STRENGTH, DISASTER_SECONDS, cellToWorld, setIslandCells } from '../types/blueprint';
 import { isBuiltinMaterial } from '../types/materials';
 import { uiStore } from '../state/store';
 import { modStore } from '../mods/modStore';
@@ -55,6 +55,8 @@ import {
 } from './game/modeRules';
 import { ProgressionController } from './game/ProgressionController';
 import { SessionController } from './game/SessionController';
+import { VillageController } from './game/VillageController';
+import { VillagerAvatars } from './village/VillagerAvatars';
 
 /** Flood plane level when no flood is running (hidden below -1). */
 const WATER_HIDDEN = -2;
@@ -77,6 +79,7 @@ export class Game implements GameActions, GameDebugApi {
   private readonly input: InputRouter;
   private readonly combat: CombatController;
   private readonly p2: P2Controller;
+  private readonly village: VillageController;
 
   /** Incremented on every start/rewind so a slow async start cannot resurrect a cancelled run. */
   private runToken = 0;
@@ -96,7 +99,16 @@ export class Game implements GameActions, GameDebugApi {
       audio: this.audio,
       isSimRunning: () => this.physics.isRunning(),
     });
+    this.village = new VillageController({
+      view: new VillagerAvatars(this.scene.scene),
+      getGraph: () => this.build.getGraph(),
+      getFallenIds: () => this.physics.getFallenBlockIds(),
+      getFallenPositions: () => this.fallenBlockPositions(),
+      getViewers: () => this.villageViewers(),
+    });
     this.session = new SessionController({
+      village: this.village,
+      setIsland: (cells) => this.setIsland(cells),
       audio: this.audio,
       assets: this.assets,
       build: this.build,
@@ -160,7 +172,7 @@ export class Game implements GameActions, GameDebugApi {
       onIntensity: (disaster, intensity) => {
         const sNow = uiStore.getState();
         const customD =
-          sNow.levelId === null && sNow.playMode !== 'survival'
+          sNow.levelId === null && sNow.playMode === 'creative'
             ? modStore.getState().active.disasterMap.get(disaster)
             : undefined;
         const customMeta = customD
@@ -180,7 +192,10 @@ export class Game implements GameActions, GameDebugApi {
         }
       },
       onWaterLevel: (y) => this.scene.setWaterLevel(y),
-      onProjectileImpact: (kind, x, y, z) => this.scene.projectileImpact(kind, x, y, z),
+      onProjectileImpact: (kind, x, y, z) => {
+        this.scene.projectileImpact(kind, x, y, z);
+        this.village.onImpact(x, z);
+      },
       onLaserFire: (from, to) => {
         this.scene.laserBeam(from, to);
         this.audio.playLaserZap();
@@ -244,6 +259,7 @@ export class Game implements GameActions, GameDebugApi {
         this.helpers.sync(g.blocks);
         uiStore.setState({ canUndo: this.build.canUndo() });
         levelStore.setState({ blocksUsed: g.blocks.length, height: buildHeight(g) });
+        this.village.onBuildChanged();
       }),
     );
     this.cleanups.push(this.input.attachWindowListeners());
@@ -317,6 +333,48 @@ export class Game implements GameActions, GameDebugApi {
     });
   }
 
+  /** Switches the build island size and re-fits everything that depends on it (scene, grid, corners). */
+  private setIsland(cells: number): void {
+    setIslandCells(cells);
+    this.scene.refreshIsland();
+    this.build.refreshIsland();
+  }
+
+  /** World centres of blocks that fell during the run (villagers beneath them get hurt). */
+  private fallenBlockPositions(): Vec3[] {
+    const fallen = this.physics.getFallenBlockIds();
+    if (fallen.size === 0) return [];
+    const keep = new Set(
+      this.build
+        .getGraph()
+        .blocks.filter((b) => !fallen.has(b.id))
+        .map((b) => b.id),
+    );
+    return this.physics.getBlockPositions(keep);
+  }
+
+  /** Where the players stand, for villager HP bars (Player 2 only counts when visible). */
+  private villageViewers(): Vec3[] {
+    const out: Vec3[] = [this.firstPerson.getFeetPosition()];
+    if (uiStore.getState().multiplayerMode !== 'solo')
+      out.push([this.companion.pos.x, this.companion.pos.y, this.companion.pos.z]);
+    return out;
+  }
+
+  /** A villager was knocked out: stop the run and show the village-lost screen. */
+  private endVillageByDefeat(): void {
+    this.runToken++;
+    this.physics.stop();
+    this.build.setEnabled(false);
+    this.scene.setWaterLevel(WATER_HIDDEN);
+    this.audio.playWind(0);
+    this.audio.playRumble(0);
+    this.scene.setDisasterFx(uiStore.getState().disaster, 0);
+    this.audio.playKO();
+    this.progression.setLastMode('failed');
+    uiStore.setState({ mode: 'failed' });
+  }
+
   /** World centers of climbable ladder blocks (live physics positions while a disaster runs). */
   private currentLadderCenters(): Vec3[] {
     const blocks = this.build.getGraph().blocks;
@@ -355,10 +413,11 @@ export class Game implements GameActions, GameDebugApi {
     if (dt > 0) this.input.handleGamepad(dt);
     if (this.physics.isRunning()) this.physics.update(dt);
     this.helpers.update(dt, this.physics.getHelperPoses());
+    if (this.village.tick(dt)) this.endVillageByDefeat();
     if (uiStore.getState().firstPerson) {
       const sNow = uiStore.getState();
       const baseGravity =
-        sNow.levelId === null && sNow.playMode !== 'survival'
+        sNow.levelId === null && sNow.playMode === 'creative'
           ? PHYSICS_TUNING.gravity * modStore.getState().active.gravityMultiplier
           : PHYSICS_TUNING.gravity;
       const gravity = baseGravity * (sNow.moonGravity ? 0.38 : 1);
@@ -395,7 +454,7 @@ export class Game implements GameActions, GameDebugApi {
       const { eye, target } = this.companion.getChaseCamera();
       this.scene.setSecondaryView(eye, target);
     }
-    if (uiStore.getState().survivalOver) return;
+    if (uiStore.getState().survivalOver || uiStore.getState().villageOver) return;
     const t = this.physics.getTelemetry();
     const s = uiStore.getState();
     const uiTimeRemaining = t.mode === 'simulating' ? Math.ceil(t.timeRemaining) : t.timeRemaining;
@@ -415,6 +474,8 @@ export class Game implements GameActions, GameDebugApi {
       });
     }
     this.sampleStanding(t.mode, t.timeRemaining, t.standingRatio);
+    if (this.village.isRunning() && (t.mode === 'survived' || t.mode === 'failed'))
+      this.village.onRunFinished();
     this.progression.recordLevelResult(t.mode, t.stars);
   }
 
@@ -548,6 +609,24 @@ export class Game implements GameActions, GameDebugApi {
   toggleDisaster = () => {
     this.audio.resume();
     const { playMode, mode, disaster, strength, levelId, survivalOver, survivalWave } = uiStore.getState();
+    if (playMode === 'village' && levelId === null) {
+      if (uiStore.getState().villageOver) {
+        this.rewind();
+        this.village.restart();
+        return;
+      }
+      if (mode !== 'build') {
+        const cleared = uiStore.getState().villageCleared;
+        this.rewind();
+        if (cleared) this.village.nextRound();
+        return;
+      }
+      const round = this.village.currentRound();
+      if (!round) return;
+      levelStore.setState({ notice: null });
+      void this.startDisaster(round.disaster, round.seed, round.strength);
+      return;
+    }
     if (playMode === 'survival' && levelId === null) {
       if (survivalOver) {
         this.restartSurvival();
@@ -626,7 +705,7 @@ export class Game implements GameActions, GameDebugApi {
     });
     this.build.setEnabled(false);
     let options: SimOptions | undefined;
-    if (s0.levelId === null && s0.playMode !== 'survival') {
+    if (s0.levelId === null && s0.playMode === 'creative') {
       const active = modStore.getState().active;
       options = {
         customMaterials: active.blockMap,
@@ -643,11 +722,13 @@ export class Game implements GameActions, GameDebugApi {
     this.currentRunDuration = options?.durationSeconds ?? DISASTER_SECONDS;
     await this.physics.start(this.build.getGraph(), this.build.meshes, type, seed, strength, options);
     if (token !== this.runToken) this.physics.stop(); // rewound while Rapier was loading
+    else if (this.village.isActive()) this.village.onDisasterStarted(strength);
   }
 
   rewind(): void {
     this.runToken++;
     this.physics.stop();
+    this.village.onRewind();
     this.build.resetMeshes();
     this.build.highlight(null);
     this.syncBuildEnabled();
@@ -707,6 +788,7 @@ export class Game implements GameActions, GameDebugApi {
     this.cleanups.forEach((c) => c());
     this.gamepad.dispose();
     this.companion.dispose();
+    this.village.dispose();
     this.playerBody.dispose();
     this.helpers.dispose();
     this.firstPerson.dispose();

@@ -9,7 +9,7 @@
  */
 import * as THREE from 'three';
 import type { BuiltinDisasterType, DisasterType, ProjectileKind, Vec3 } from '../types/blueprint';
-import { ISLAND_SIZE, isBuiltinDisaster } from '../types/blueprint';
+import { getIslandSize, isBuiltinDisaster } from '../types/blueprint';
 import { intToHex } from '../utils/color';
 
 export interface CustomDisasterFx {
@@ -20,11 +20,10 @@ export interface CustomDisasterFx {
 
 /** If setDisasterFx is not called for this long, the disaster is treated as over. */
 const STALE_SECONDS = 0.3;
-const HALF = ISLAND_SIZE / 2;
 const SHAKE_MAX = 0.32;
 const SHAKE_FREQ = 26;
 /** Half-width of the island's rock slab; flood water below the top (y 0) is hidden inside it. */
-const SLAB_HALF = HALF + 1.5;
+const slabHalf = (): number => getIslandSize() / 2 + 1.5;
 const LASER_POOL = 8;
 const LASER_LIFE = 0.18;
 const UP_AXIS = new THREE.Vector3(0, 1, 0);
@@ -454,7 +453,7 @@ export class DisasterEffects {
     for (let n = this.emit('dust', 40 * lv * k, dt); n > 0; n--) {
       // Mostly around the rim and the build area: that is where the ground rattles.
       const a = Math.random() * Math.PI * 2;
-      const r = Math.sqrt(Math.random()) * (HALF + 1);
+      const r = Math.sqrt(Math.random()) * (getIslandSize() / 2 + 1);
       this.dust.spawn({
         x: Math.cos(a) * r,
         y: 0.1,
@@ -476,9 +475,9 @@ export class DisasterEffects {
     for (let n = this.emit('streak', 26 * lv * k, dt); n > 0; n--) {
       const speed = 26 + Math.random() * 10;
       this.streaks.spawn({
-        x: -HALF - 10 + Math.random() * 4,
+        x: -(getIslandSize() / 2) - 10 + Math.random() * 4,
         y: 0.6 + Math.random() * 11,
-        z: (Math.random() - 0.5) * (ISLAND_SIZE + 8),
+        z: (Math.random() - 0.5) * (getIslandSize() + 8),
         vx: speed,
         vy: 0,
         vz: speed * swirl,
@@ -491,9 +490,9 @@ export class DisasterEffects {
     const leafTones = ['#8ed35a', '#f2a93b', '#e86a4a', '#b6e06a'];
     for (let n = this.emit('leaf', 9 * lv * k, dt); n > 0; n--) {
       this.leaves.spawn({
-        x: -HALF - 6 + Math.random() * 3,
+        x: -(getIslandSize() / 2) - 6 + Math.random() * 3,
         y: 0.5 + Math.random() * 6,
-        z: (Math.random() - 0.5) * ISLAND_SIZE,
+        z: (Math.random() - 0.5) * getIslandSize(),
         vx: 11 + Math.random() * 7,
         vy: 1.5 + Math.random() * 2.5,
         vz: (Math.random() - 0.5) * 5,
@@ -511,12 +510,12 @@ export class DisasterEffects {
     if (this.waterY < -1) return;
     const tones = ['#bfe6ff', '#ffffff', '#8fd0ff'];
     for (let n = this.emit('splash', 42 * lv * k, dt); n > 0; n--) {
-      let x = (Math.random() - 0.5) * (ISLAND_SIZE + 6);
-      let z = (Math.random() - 0.5) * (ISLAND_SIZE + 6);
+      let x = (Math.random() - 0.5) * (getIslandSize() + 6);
+      let z = (Math.random() - 0.5) * (getIslandSize() + 6);
       // While the water is below the island top, splashes inside the rock slab would be hidden:
       // push them out to the shoreline instead.
-      if (this.waterY < 0 && Math.abs(x) < SLAB_HALF && Math.abs(z) < SLAB_HALF) {
-        const edge = SLAB_HALF + Math.random() * 1.5;
+      if (this.waterY < 0 && Math.abs(x) < slabHalf() && Math.abs(z) < slabHalf()) {
+        const edge = slabHalf() + Math.random() * 1.5;
         if (Math.abs(x) > Math.abs(z)) x = Math.sign(x) * edge;
         else z = Math.sign(z || 1) * edge;
       }
@@ -539,7 +538,7 @@ export class DisasterEffects {
     const tones = ['#ff6a00', '#ff3d00', '#ffd54f'];
     for (let n = this.emit('dust', 46 * lv * k, dt); n > 0; n--) {
       const a = Math.random() * Math.PI * 2;
-      const r = 3 + Math.random() * (HALF + 3);
+      const r = 3 + Math.random() * (getIslandSize() / 2 + 3);
       const speed = 7 + Math.random() * 5;
       this.dust.spawn({
         x: Math.cos(a) * r,
@@ -576,9 +575,9 @@ export class DisasterEffects {
   private spawnSnowStorm(dt: number, lv: number, k: number): void {
     for (let n = this.emit('dust', 42 * lv * k, dt); n > 0; n--) {
       this.dust.spawn({
-        x: -HALF - 4 + Math.random() * (ISLAND_SIZE + 8),
+        x: -(getIslandSize() / 2) - 4 + Math.random() * (getIslandSize() + 8),
         y: 8 + Math.random() * 7,
-        z: (Math.random() - 0.5) * (ISLAND_SIZE + 8),
+        z: (Math.random() - 0.5) * (getIslandSize() + 8),
         vx: 4 + Math.random() * 4,
         vy: -(5 + Math.random() * 3),
         vz: (Math.random() - 0.5) * 3,
@@ -591,9 +590,9 @@ export class DisasterEffects {
     for (let n = this.emit('streak', 18 * lv * k, dt); n > 0; n--) {
       const speed = 22 + Math.random() * 8;
       this.streaks.spawn({
-        x: -HALF - 8 + Math.random() * 4,
+        x: -(getIslandSize() / 2) - 8 + Math.random() * 4,
         y: 1 + Math.random() * 10,
-        z: (Math.random() - 0.5) * (ISLAND_SIZE + 8),
+        z: (Math.random() - 0.5) * (getIslandSize() + 8),
         vx: speed,
         vy: -1,
         vz: (Math.random() - 0.5) * 4,
@@ -608,7 +607,7 @@ export class DisasterEffects {
   private spawnRaid(dt: number, lv: number, k: number): void {
     for (let n = this.emit('dust', 16 * lv * k, dt); n > 0; n--) {
       const a = Math.random() * Math.PI * 2;
-      const r = HALF + 4 + Math.random() * 3;
+      const r = getIslandSize() / 2 + 4 + Math.random() * 3;
       this.dust.spawn({
         x: Math.cos(a) * r,
         y: 1.5 + Math.random() * 4,
@@ -627,9 +626,9 @@ export class DisasterEffects {
   private spawnMeteor(dt: number, lv: number, k: number): void {
     for (let n = this.emit('streak', 14 * lv * k, dt); n > 0; n--) {
       this.streaks.spawn({
-        x: (Math.random() - 0.5) * (ISLAND_SIZE + 6),
+        x: (Math.random() - 0.5) * (getIslandSize() + 6),
         y: 14 + Math.random() * 6,
-        z: (Math.random() - 0.5) * (ISLAND_SIZE + 6),
+        z: (Math.random() - 0.5) * (getIslandSize() + 6),
         vx: (Math.random() - 0.5) * 4,
         vy: -(18 + Math.random() * 8),
         vz: (Math.random() - 0.5) * 4,
@@ -645,9 +644,9 @@ export class DisasterEffects {
     const hex = intToHex(color);
     for (let n = this.emit('streak', 16 * lv * k, dt); n > 0; n--) {
       this.streaks.spawn({
-        x: (Math.random() - 0.5) * (ISLAND_SIZE + 8),
+        x: (Math.random() - 0.5) * (getIslandSize() + 8),
         y: 2 + Math.random() * 11,
-        z: (Math.random() - 0.5) * (ISLAND_SIZE + 8),
+        z: (Math.random() - 0.5) * (getIslandSize() + 8),
         vx: (Math.random() - 0.5) * 14,
         vy: -6 - Math.random() * 6,
         vz: (Math.random() - 0.5) * 14,

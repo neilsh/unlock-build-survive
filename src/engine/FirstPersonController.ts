@@ -4,14 +4,14 @@
  */
 import * as THREE from 'three';
 import type { Vec3 } from '../types/blueprint';
-import { CELL_SIZE, ISLAND_SIZE } from '../types/blueprint';
+import { CELL_SIZE, getIslandSize } from '../types/blueprint';
 
 export const PLAYER_RADIUS = 0.45;
 export const PLAYER_HEIGHT = 1.75;
 export const EYE_HEIGHT = 1.55;
 const MOVE_SPEED = 7.5;
 const JUMP_SPEED = 8.2;
-const ISLAND_HALF = ISLAND_SIZE / 2 + 1.0;
+
 const HALF_BLOCK = CELL_SIZE / 2;
 const LOOK_SENSITIVITY = 0.004;
 const MAX_PITCH = Math.PI / 2 - 0.08;
@@ -337,8 +337,8 @@ export class FirstPersonController {
     this.grounded = false;
 
     if (
-      Math.abs(this.pos.x) <= ISLAND_HALF &&
-      Math.abs(this.pos.z) <= ISLAND_HALF &&
+      Math.abs(this.pos.x) <= getIslandSize() / 2 + 1.0 &&
+      Math.abs(this.pos.z) <= getIslandSize() / 2 + 1.0 &&
       this.pos.y <= 0 &&
       prevY >= -0.35
     ) {

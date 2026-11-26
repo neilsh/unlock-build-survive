@@ -191,7 +191,7 @@ export function BuildPanel({ actions }: { actions: GameActions }) {
         </div>
       </div>
 
-      {level === undefined && s.playMode !== 'survival' && active.blocks.length > 0 && (
+      {level === undefined && s.playMode === 'creative' && active.blocks.length > 0 && (
         <div className="flex flex-col gap-1">
           <span className={SECTION_LABEL}>Mod Blocks</span>
           <div className="flex flex-wrap gap-2" role="group" aria-label="Mod blocks">

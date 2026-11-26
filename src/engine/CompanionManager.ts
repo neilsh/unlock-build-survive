@@ -4,7 +4,7 @@
  */
 import * as THREE from 'three';
 import type { Vec3 } from '../types/blueprint';
-import { ISLAND_SIZE } from '../types/blueprint';
+import { getIslandSize } from '../types/blueprint';
 import type { WeaponDef } from '../types/gear';
 import type { MultiplayerMode } from '../types/ui';
 import { RoboAvatar, type RoboPalette } from './RoboAvatar';
@@ -35,7 +35,7 @@ const BOT_PALETTE: RoboPalette = { body: 0x10b981, accent: 0xfacc15, visorGlow: 
 const MOVE_SPEED = 7.5;
 const JUMP_SPEED = 8.2;
 const GRAVITY = 9.81 * 2.2;
-const ISLAND_LIMIT = ISLAND_SIZE / 2 + 0.5;
+
 const MAX_STEP_DT = 0.05;
 const BOT_PATROL_RADIUS = 6.4;
 const BOT_COOLDOWN = 1.05;
@@ -192,8 +192,8 @@ export class CompanionManager {
     }
 
     if (stepDt > 0) {
-      this.pos.x = Math.max(-ISLAND_LIMIT, Math.min(ISLAND_LIMIT, this.pos.x));
-      this.pos.z = Math.max(-ISLAND_LIMIT, Math.min(ISLAND_LIMIT, this.pos.z));
+      this.pos.x = Math.max(-(getIslandSize() / 2 + 0.5), Math.min(getIslandSize() / 2 + 0.5, this.pos.x));
+      this.pos.z = Math.max(-(getIslandSize() / 2 + 0.5), Math.min(getIslandSize() / 2 + 0.5, this.pos.z));
       if (!this.grounded || this.vy > 0) {
         this.vy -= GRAVITY * stepDt;
         this.pos.y += this.vy * stepDt;

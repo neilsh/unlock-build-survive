@@ -11,6 +11,11 @@ export function isCreativeSandbox(): boolean {
   return s.playMode === 'creative' && s.levelId === null;
 }
 
+export function isVillageMode(): boolean {
+  const s = uiStore.getState();
+  return s.playMode === 'village' && s.levelId === null;
+}
+
 export function isSurvivalMode(): boolean {
   const s = uiStore.getState();
   return s.playMode === 'survival' && s.levelId === null;
@@ -18,6 +23,10 @@ export function isSurvivalMode(): boolean {
 
 /** Survival waves pick the next disaster automatically; tells the player and returns true when locked. */
 export function lockedBySurvival(): boolean {
+  if (isVillageMode()) {
+    levelStore.setState({ notice: 'Each village round brings its own disaster.' });
+    return true;
+  }
   if (!isSurvivalMode()) return false;
   levelStore.setState({ notice: 'Survival waves pick the next disaster automatically.' });
   return true;
@@ -25,6 +34,7 @@ export function lockedBySurvival(): boolean {
 
 export function lockedBySurvivalEnd(): boolean {
   const s = uiStore.getState();
+  if (s.playMode === 'village' && s.levelId === null) return s.villageOver;
   return s.playMode === 'survival' && s.levelId === null && (s.survivalOver || s.mode === 'survived');
 }
 
@@ -39,7 +49,7 @@ export function lockedByLevel(): boolean {
 export function buildMaterialPool(constraints: BuildConstraints | null | undefined): MaterialType[] {
   const s = uiStore.getState();
   const customIds =
-    s.levelId === null && s.playMode !== 'survival' ? modStore.getState().active.blocks.map((b) => b.id) : [];
+    s.levelId === null && s.playMode === 'creative' ? modStore.getState().active.blocks.map((b) => b.id) : [];
   const base = isCreativeSandbox() ? MATERIAL_ORDER : s.unlockedMaterials;
   return [...base, ...customIds].filter((m) => isMaterialAllowed(constraints, m));
 }

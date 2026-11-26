@@ -39,6 +39,7 @@ import { BuildPanel } from './BuildPanel';
 import { CameraPanel } from './CameraPanel';
 import { DisasterPanel } from './DisasterPanel';
 import { LevelPanel } from './LevelPanel';
+import { VillagePanel } from './VillagePanel';
 import { MainMenu } from './MainMenu';
 import { P2Panel } from './P2Panel';
 import { ModsPanel } from './ModsPanel';
@@ -83,6 +84,7 @@ export function HUD({ actions }: { actions: GameActions }) {
   }, [actions, levelsOpen, shopOpen, s.menuOpen, s.hasStarted]);
 
   const split = s.multiplayerMode === 'split';
+  const isVillage = s.playMode === 'village' && s.levelId === null;
   const isSurvival = s.playMode === 'survival' && s.levelId === null;
   const creativeSandbox = s.playMode === 'creative' && s.levelId === null;
   const hpPct = Math.max(0, Math.min(100, (s.playerHp / s.playerMaxHp) * 100));
@@ -160,19 +162,23 @@ export function HUD({ actions }: { actions: GameActions }) {
         <span
           data-testid="mode-badge"
           className={`flex min-h-11 items-center gap-1.5 rounded-2xl px-3.5 text-xs font-black shadow-md backdrop-blur ${
-            isSurvival
-              ? 'bg-rose-500 text-white'
-              : s.levelId !== null
-                ? 'bg-sky-600 text-white'
-                : 'bg-amber-300 text-amber-950'
+            isVillage
+              ? 'bg-emerald-600 text-white'
+              : isSurvival
+                ? 'bg-rose-500 text-white'
+                : s.levelId !== null
+                  ? 'bg-sky-600 text-white'
+                  : 'bg-amber-300 text-amber-950'
           }`}
         >
           Mode:{' '}
-          {isSurvival
-            ? `Survival · Wave ${s.survivalWave}${s.survivalBestWave > 0 ? ` · Best ${s.survivalBestWave}` : ''}`
-            : s.levelId !== null
-              ? 'Challenge'
-              : 'Creative'}
+          {isVillage
+            ? `Village Island · Round ${s.villageRound}`
+            : isSurvival
+              ? `Survival · Wave ${s.survivalWave}${s.survivalBestWave > 0 ? ` · Best ${s.survivalBestWave}` : ''}`
+              : s.levelId !== null
+                ? 'Challenge'
+                : 'Creative'}
         </span>
 
         {s.exploreMode && (
@@ -243,14 +249,15 @@ export function HUD({ actions }: { actions: GameActions }) {
           actions={actions}
           open={levelsOpen}
           onOpenChange={setLevelsOpen}
-          hideButton={isSurvival}
+          hideButton={isSurvival || isVillage}
           extra={
             <>
               <ShopPanel actions={actions} open={shopOpen} onOpenChange={setShopOpen} />
-              {!isSurvival && <ModsPanel actions={actions} />}
+              {!isSurvival && !isVillage && <ModsPanel actions={actions} />}
             </>
           }
         />
+        {isVillage && <VillagePanel />}
       </div>
 
       <div className="absolute right-2 top-16">

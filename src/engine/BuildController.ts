@@ -24,8 +24,8 @@ import {
   cloneGraph,
   cornerToWorld,
   emptyGraph,
-  GRID_CELLS,
-  ISLAND_SIZE,
+  getGridCells,
+  getIslandSize,
   CELL_SIZE,
   isStrutValid,
   key,
@@ -107,7 +107,7 @@ export class BuildController {
   private readonly strutGhosts: THREE.Mesh[] = [];
   private readonly cornerMarker: THREE.Mesh;
   /** Subtle grid over the island footprint at the height the block ghost would land on. */
-  private readonly levelGrid: THREE.GridHelper;
+  private levelGrid: THREE.GridHelper;
   private readonly ghostMats: THREE.MeshBasicMaterial[] = [];
   private readonly ownGeometries: THREE.BufferGeometry[] = [];
 
@@ -146,13 +146,7 @@ export class BuildController {
     this.cornerMarker = new THREE.Mesh(markerGeo, good);
     this.cornerMarker.visible = false;
     this.ghostRoot.add(this.cornerMarker);
-    this.levelGrid = new THREE.GridHelper(ISLAND_SIZE, GRID_CELLS, 0xffffff, 0xffffff);
-    for (const gridMat of [this.levelGrid.material].flat()) {
-      gridMat.transparent = true;
-      gridMat.opacity = 0.25;
-      gridMat.depthWrite = false;
-    }
-    this.levelGrid.visible = false;
+    this.levelGrid = this.makeLevelGrid();
     this.ghostRoot.add(this.levelGrid);
     for (let i = 0; i < 2; i++) {
       const bg = new THREE.Mesh(assets.getBlockGeometry(), good);
@@ -634,10 +628,30 @@ export class BuildController {
     m.emissive.setRGB(pulse + 0.3, 0, 0);
   }
 
+  private makeLevelGrid(): THREE.GridHelper {
+    const grid = new THREE.GridHelper(getIslandSize(), getGridCells(), 0xffffff, 0xffffff);
+    for (const gridMat of [grid.material].flat()) {
+      gridMat.transparent = true;
+      gridMat.opacity = 0.25;
+      gridMat.depthWrite = false;
+    }
+    grid.visible = false;
+    return grid;
+  }
+
+  /** Re-fits the placement grid and ground corners after the island size changed (see `setIslandCells`). */
+  refreshIsland(): void {
+    this.ghostRoot.remove(this.levelGrid);
+    this.levelGrid.dispose();
+    this.levelGrid = this.makeLevelGrid();
+    this.ghostRoot.add(this.levelGrid);
+    this.rebuildCorners();
+  }
+
   private rebuildCorners(): void {
     const c = new Map<string, Vec3>();
-    for (let x = 0; x <= GRID_CELLS; x++)
-      for (let z = 0; z <= GRID_CELLS; z++) c.set(key([x, 0, z]), [x, 0, z]);
+    for (let x = 0; x <= getGridCells(); x++)
+      for (let z = 0; z <= getGridCells(); z++) c.set(key([x, 0, z]), [x, 0, z]);
     for (const b of this.graph.blocks) for (const k of cellCorners(b.cell)) c.set(key(k), k);
     this.corners = c;
   }
@@ -739,7 +753,7 @@ export class BuildController {
       cell[i] += Math.sign([n.x, n.y, n.z][i]);
       return cell;
     }
-    const half = ISLAND_SIZE / 2;
+    const half = getIslandSize() / 2;
     const cx = Math.floor((hit.point.x + half) / CELL_SIZE);
     const cz = Math.floor((hit.point.z + half) / CELL_SIZE);
     return [cx, 0, cz];
