@@ -65,7 +65,7 @@ function findRoot(doc: Document): HTMLElement | null {
 }
 
 function candidatesIn(root: HTMLElement): HTMLElement[] {
-  return Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((el) => {
+  return [...root.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((el) => {
     if (el.hasAttribute('disabled') || el.tabIndex < 0) return false;
     const r = el.getBoundingClientRect();
     return r.width > 0 && r.height > 0;

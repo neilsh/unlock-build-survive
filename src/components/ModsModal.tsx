@@ -13,7 +13,7 @@ export function downloadModJson(mod: GameMod): void {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `${mod.id.replace(/[^a-z0-9-]+/gi, '-')}.json`;
+  a.download = `${mod.id.replaceAll(/[^a-z0-9-]+/gi, '-')}.json`;
   a.click();
   URL.revokeObjectURL(url);
 }

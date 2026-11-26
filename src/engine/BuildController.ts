@@ -782,9 +782,9 @@ export class BuildController {
     if (!hit || hit.distance > maxDistance) return null;
     const handle = this.blockBatches.handleAt(hit);
     const info = handle && this.pieces.get(handle);
-    if (!handle || !info || info.kind !== 'block') return null;
+    if (!handle || info?.kind !== 'block') return null;
     const block = this.blocksById.get(info.id);
-    if (!block || block.material !== 'door') return null;
+    if (block?.material !== 'door') return null;
     return { id: block.id, handle };
   }
 

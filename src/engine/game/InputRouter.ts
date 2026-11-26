@@ -209,7 +209,7 @@ export class InputRouter {
     } else {
       p1 = this.d.gamepad.poll();
     }
-    const pads = [p1, p2].filter((g): g is GamepadSnapshot => g !== null && g.connected);
+    const pads = [p1, p2].filter((g): g is GamepadSnapshot => Boolean(g?.connected));
 
     if (this.d.isModalOpen() || uiStore.getState().menuOpen) {
       this.releaseAllGamepadInput();

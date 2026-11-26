@@ -28,8 +28,13 @@ function setup() {
     buildRoot: new THREE.Group(),
     islandTop,
     domElement: dom,
-    onFrame: (cb: (dt: number) => void) => (frame.push(cb), () => {}),
-    setControlsEnabled: (e: boolean) => (controls = e),
+    onFrame: (cb: (dt: number) => void) => {
+      frame.push(cb);
+      return () => {};
+    },
+    setControlsEnabled: (e: boolean) => {
+      controls = e;
+    },
   } as unknown as SceneManager;
   const bc = new BuildController(scene, new ProceduralAssets(), new AudioSynth());
   const fire = (type: string, x: number, y: number, extra: Record<string, unknown> = {}) => {

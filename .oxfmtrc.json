@@ -4,5 +4,6 @@
   "singleQuote": true,
   "semi": true,
   "trailingComma": "all",
-  "ignorePatterns": ["dist", "node_modules", "package-lock.json"]
+  "endOfLine": "lf",
+  "ignorePatterns": ["dist", "node_modules", "coverage", "package-lock.json", "playwright-report", "test-results"]
 }

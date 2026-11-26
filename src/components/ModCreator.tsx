@@ -145,7 +145,7 @@ export function ModCreator({
     const cleanBlocks: ModBlockDef[] = [];
     for (let i = 0; i < blocks.length; i++) {
       const b = blocks[i];
-      if (!b || !b.label.trim()) continue;
+      if (!b?.label.trim()) continue;
       const item: ModBlockDef = {
         id: b.id.startsWith(`${modId}:`) ? b.id : `${modId}:b:${i}-${slugifyId('blk', b.label)}`,
         label: b.label.trim().slice(0, 20),
@@ -162,7 +162,7 @@ export function ModCreator({
     const cleanDisasters: ModDisasterDef[] = [];
     for (let i = 0; i < disasters.length; i++) {
       const d = disasters[i];
-      if (!d || !d.label.trim()) continue;
+      if (!d?.label.trim()) continue;
       const item: ModDisasterDef = {
         id: d.id.startsWith(`${modId}:`) ? d.id : `${modId}:d:${i}-${slugifyId('dis', d.label)}`,
         label: d.label.trim().slice(0, 20),

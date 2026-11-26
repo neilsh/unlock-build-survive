@@ -181,8 +181,8 @@ const cleanColor = (v: unknown, fallback: number): number => {
 export function slugifyId(prefix: string, name: string): string {
   const slug = name
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
+    .replaceAll(/[^a-z0-9]+/g, '-')
+    .replaceAll(/^-+|-+$/g, '')
     .slice(0, 24);
   return `${prefix}:${slug || 'item'}`;
 }

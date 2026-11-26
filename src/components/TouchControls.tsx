@@ -11,7 +11,7 @@ const DEAD_ZONE = 0.12;
 /** True when the primary input is a touch screen (coarse pointer). */
 export function useIsTouchDevice(): boolean {
   const query = '(pointer: coarse)';
-  const [touch, setTouch] = useState(() => typeof window !== 'undefined' && window.matchMedia(query).matches);
+  const [touch, setTouch] = useState(() => globalThis.matchMedia?.(query).matches ?? false);
   useEffect(() => {
     const mq = window.matchMedia(query);
     const onChange = () => setTouch(mq.matches);

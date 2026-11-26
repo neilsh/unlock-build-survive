@@ -39,7 +39,7 @@ export class AudioSynth {
       void ctx
         .resume()
         .then(() => this.music?.start())
-        .catch(() => undefined);
+        .catch(() => {});
     } else {
       this.music?.start();
     }
@@ -66,8 +66,8 @@ export class AudioSynth {
   setSuspended(suspended: boolean): void {
     const ctx = this.ctx;
     if (!ctx || !this.musicWanted) return;
-    if (suspended && ctx.state === 'running') void ctx.suspend().catch(() => undefined);
-    else if (!suspended && ctx.state === 'suspended') void ctx.resume().catch(() => undefined);
+    if (suspended && ctx.state === 'running') void ctx.suspend().catch(() => {});
+    else if (!suspended && ctx.state === 'suspended') void ctx.resume().catch(() => {});
   }
 
   setMuted(muted: boolean): void {
@@ -227,7 +227,7 @@ export class AudioSynth {
     this.rumble = null;
     this.master = null;
     this.noise = null;
-    void this.ctx?.close().catch(() => undefined);
+    void this.ctx?.close().catch(() => {});
     this.ctx = null;
   }
 
