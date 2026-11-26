@@ -5,5 +5,12 @@
   "semi": true,
   "trailingComma": "all",
   "endOfLine": "lf",
-  "ignorePatterns": ["dist", "node_modules", "coverage", "package-lock.json", "playwright-report", "test-results"]
+  "ignorePatterns": [
+    "dist",
+    "node_modules",
+    "coverage",
+    "package-lock.json",
+    "playwright-report",
+    "test-results"
+  ]
 }
