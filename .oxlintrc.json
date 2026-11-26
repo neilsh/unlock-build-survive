@@ -23,13 +23,7 @@
     "browser": true,
     "es2022": true
   },
-  "ignorePatterns": [
-    "dist",
-    "coverage",
-    "node_modules",
-    "playwright-report",
-    "test-results"
-  ],
+  "ignorePatterns": ["dist", "coverage", "node_modules", "playwright-report", "test-results"],
   "rules": {
     "no-unused-vars": [
       "error",
