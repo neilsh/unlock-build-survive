@@ -340,8 +340,10 @@ export function MainMenu({ actions, onOpenChallenges, onOpenShop }: MainMenuProp
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <span className="text-xs font-black uppercase tracking-wide text-sky-800">Game Modes</span>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <span className="text-xs font-black uppercase tracking-wide text-sky-800">
+            Play Alone (the regular game, no villagers)
+          </span>
+          <div data-testid="modes-alone" className="grid gap-3 sm:grid-cols-2">
             <button
               type="button"
               data-testid="menu-creative"
@@ -410,7 +412,14 @@ export function MainMenu({ actions, onOpenChallenges, onOpenShop }: MainMenuProp
                 Play Survival
               </span>
             </button>
+          </div>
+        </div>
 
+        <div className="flex flex-col gap-1.5">
+          <span className="text-xs font-black uppercase tracking-wide text-sky-800">
+            Play Village (big island, villagers, lose if one is knocked out)
+          </span>
+          <div data-testid="modes-village" className="grid gap-3 sm:grid-cols-2">
             <button
               type="button"
               data-testid="menu-village"

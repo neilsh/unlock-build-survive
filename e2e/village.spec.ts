@@ -84,4 +84,36 @@ test.describe('village island', () => {
     await expect(page.getByTestId('mode-badge')).toContainText('Round 2');
     await expect(page.getByTestId('village-villagers')).toContainText('/ 4');
   });
+
+  test('Alone and Village are separate choices: exit, continue and 2P work with both', async ({ page }) => {
+    await openGame(page);
+    await expect(page.getByTestId('modes-alone')).toBeVisible();
+    await expect(page.getByTestId('modes-village')).toBeVisible();
+    const place = (x: number) => page.evaluate((c) => window.__GAME_DEBUG__!.placeBlock(c, 0, c, 'wood'), x);
+
+    // Village + 2P split-screen
+    await page.getByTestId('mp-split').click();
+    await page.getByTestId('menu-village').click();
+    await expect(page.getByTestId('village-panel')).toBeVisible();
+    expect(await place(13)).toBe(true);
+
+    // Save, exit to the menu, continue: still the village on the big island
+    await page.getByTestId('menu-open').click();
+    await page.getByTestId('menu-save').dispatchEvent('click');
+    await page.getByTestId('menu-exit').dispatchEvent('click');
+    await page.getByTestId('exit-confirm-yes').dispatchEvent('click');
+    await expect(page.getByTestId('village-panel')).toBeHidden();
+    await page.getByTestId('menu-continue').dispatchEvent('click');
+    await expect(page.getByTestId('village-panel')).toBeVisible();
+    expect((await page.evaluate(() => window.__GAME_DEBUG__!.getGraph())).blocks).toHaveLength(1);
+
+    // Exit, then play Alone: standard 8x8 island, no villagers
+    await page.getByTestId('menu-open').click();
+    await page.getByTestId('menu-exit').dispatchEvent('click');
+    await page.getByTestId('exit-confirm-yes').dispatchEvent('click');
+    await page.getByTestId('menu-creative').click();
+    await expect(page.getByTestId('village-panel')).toBeHidden();
+    expect(await place(13)).toBe(false);
+    expect(await place(7)).toBe(true);
+  });
 });
