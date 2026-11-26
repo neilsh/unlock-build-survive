@@ -20,8 +20,7 @@ import type {
   Telemetry,
   Vec3,
 } from '../types/blueprint';
-import { isVillagePlayMode, type GameActions } from '../types/ui';
-import { villagePresetBlock } from '../types/presets';
+import type { GameActions } from '../types/ui';
 import { DEFAULT_STRENGTH, DISASTER_SECONDS, cellToWorld, setIslandCells } from '../types/blueprint';
 import { isBuiltinMaterial } from '../types/materials';
 import { uiStore } from '../state/store';
@@ -603,19 +602,6 @@ export class Game implements GameActions, GameDebugApi {
     if (lockedBySurvivalEnd()) return;
     if (!isCreativeSandbox() && !uiStore.getState().unlockedPresets.includes(p)) {
       levelStore.setState({ notice: 'Unlock this quick-builder in the Shop first!' });
-    const ui = uiStore.getState();
-    if (isVillagePlayMode(ui.playMode)) {
-      const block = villagePresetBlock(p, ui.exploreMode);
-      if (block) {
-        levelStore.setState({
-          notice:
-            block === 'needs-explore'
-              ? 'Quick-builders in the village need Explore Mode. Turn it on in Add-Ons on the main menu!'
-              : 'The village only has the four starter quick-builders: Empty, House, Tower and Bridge.',
-        });
-        return;
-      }
-    }
       return;
     }
     levelStore.setState({ notice: null });

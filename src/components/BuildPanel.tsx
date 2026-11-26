@@ -27,8 +27,8 @@ import { useMods } from '../mods/modStore';
 import { useUIState } from '../state/store';
 import { type BuiltinMaterialType, type PresetName, type ToolType } from '../types/blueprint';
 import { BASE_MATERIALS, MATERIALS, UNLOCKABLE_MATERIALS } from '../types/materials';
-import { PRESET_DEFS, PRESET_ORDER, VILLAGE_PRESETS } from '../types/presets';
-import { isSandboxPlayMode, isVillagePlayMode, type GameActions } from '../types/ui';
+import { PRESET_DEFS, PRESET_ORDER } from '../types/presets';
+import { isSandboxPlayMode, type GameActions } from '../types/ui';
 import { Chip, Swatch } from './Chip';
 
 const TOOLS: Array<{ id: ToolType; label: string; icon: ReactNode }> = [
@@ -72,9 +72,6 @@ export function BuildPanel({ actions }: { actions: GameActions }) {
   // A challenge level greys out materials it does not allow and the presets (they would skip its limits).
   const level = s.levelId ? getLevel(s.levelId) : undefined;
   const creativeSandbox = s.hasStarted && isSandboxPlayMode(s.playMode) && s.levelId === null;
-  // The Village only offers the four starter quick-builders, and only with Explore Mode on.
-  const inVillage = isVillagePlayMode(s.playMode) && s.levelId === null;
-  const presetList = inVillage ? VILLAGE_PRESETS : PRESET_ORDER;
   if (s.exploreMode) {
     return (
       <section
@@ -91,7 +88,7 @@ export function BuildPanel({ actions }: { actions: GameActions }) {
         <div className="flex flex-col gap-1">
           <span className={SECTION_LABEL}>Quick-Builders</span>
           <div className="flex flex-wrap gap-2" role="group" aria-label="Quick-Builders">
-            {presetList.map((p) => {
+            {PRESET_ORDER.map((p) => {
               const unlocked = creativeSandbox || s.unlockedPresets.includes(p);
               return (
                 <Chip
@@ -215,7 +212,7 @@ export function BuildPanel({ actions }: { actions: GameActions }) {
       <div className="flex flex-col gap-1">
         <span className={SECTION_LABEL}>Quick-Builders</span>
         <div className="flex flex-wrap gap-2" role="group" aria-label="Quick-Builders">
-          {presetList.map((p) => {
+          {PRESET_ORDER.map((p) => {
             const unlocked = creativeSandbox || s.unlockedPresets.includes(p);
             return (
               <Chip
@@ -223,17 +220,12 @@ export function BuildPanel({ actions }: { actions: GameActions }) {
                 testId={`preset-${p}`}
                 label={PRESET_DEFS[p].label}
                 icon={unlocked ? PRESET_ICONS[p] : <Lock size={18} />}
-                disabled={!unlocked || level !== undefined || inVillage}
+                disabled={!unlocked || level !== undefined}
                 onClick={() => actions.loadPreset(p)}
               />
             );
           })}
         </div>
-        {inVillage && (
-          <span data-testid="village-quickbuilders-hint" className="text-[11px] font-semibold text-sky-900">
-            Turn on Explore Mode (main menu Add-Ons) to use quick-builders in the village.
-          </span>
-        )}
       </div>
     </section>
   );

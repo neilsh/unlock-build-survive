@@ -56,28 +56,6 @@ test.describe('village island', () => {
     await expect(page.getByTestId('village-villagers')).toContainText('3 / 3');
   });
 
-  test('village quick-builders are locked until Explore Mode is on', async ({ page }) => {
-    await openGame(page);
-    await page.getByTestId('menu-village').click();
-    await expect(page.getByTestId('village-quickbuilders-hint')).toBeVisible();
-    await expect(page.getByTestId('preset-house')).toBeDisabled();
-    await expect(page.getByTestId('preset-pyramid')).toHaveCount(0);
-    await page.evaluate(() => window.__GAME_DEBUG__!.loadPreset('house'));
-    expect((await page.evaluate(() => window.__GAME_DEBUG__!.getTelemetry())).blockCount).toBe(0);
-  });
-
-  test('village Explore Mode offers just the four starter quick-builders', async ({ page }) => {
-    await openGame(page);
-    await page.getByTestId('menu-explore-addon').click();
-    await page.getByTestId('menu-village').click();
-    await Promise.all(
-      ['empty', 'house', 'tower', 'bridge'].map((p) => expect(page.getByTestId(`preset-${p}`)).toBeEnabled()),
-    );
-    await expect(page.getByTestId('preset-pyramid')).toHaveCount(0);
-    await page.getByTestId('preset-house').click();
-    expect((await page.evaluate(() => window.__GAME_DEBUG__!.getTelemetry())).blockCount).toBeGreaterThan(0);
-  });
-
   test('a village with enough shelter clears the round and moves on', async ({ page }) => {
     await openGame(page);
     await page.getByTestId('menu-village').click();
