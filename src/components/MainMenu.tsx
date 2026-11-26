@@ -130,6 +130,11 @@ export function MainMenu({ actions, onOpenChallenges, onOpenShop }: MainMenuProp
             <p className="text-sm font-bold text-sky-800">
               Build your shelter, step inside in 1st person, and brave the storm!
             </p>
+            {s.gamepadConnected && (
+              <p data-testid="menu-gamepad-hint" className="text-xs font-bold text-amber-800">
+                Gamepad: D-pad / stick move · A select · B back{s.hasStarted ? ' · Start resume' : ''}
+              </p>
+            )}
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {s.hasSave && (

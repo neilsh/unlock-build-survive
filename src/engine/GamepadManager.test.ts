@@ -25,6 +25,8 @@ function makePad(
   };
 }
 
+const withIndex = (pad: GamepadLike, index: number): GamepadLike => ({ ...pad, index });
+
 describe('GamepadManager', () => {
   it('filters deadzone values and rescales stick movement linearly', () => {
     let pad: GamepadLike | null = makePad([0.1, -0.15, 0.59, -1]);
@@ -52,6 +54,7 @@ describe('GamepadManager', () => {
       4: { pressed: true },
       5: { pressed: true },
       7: { pressed: false, value: 0.4 },
+      8: { pressed: true },
       9: { pressed: true },
       12: { pressed: true },
       15: { pressed: true },
@@ -65,6 +68,8 @@ describe('GamepadManager', () => {
     expect(first.moveY).toBe(1);
     expect(first.toggleFirstPerson).toBe(true);
     expect(first.toggleDisaster).toBe(true);
+    expect(first.menuPressed).toBe(true);
+    expect(first.confirmPressed).toBe(true);
     expect(first.backOrUndo).toBe(true);
     expect(first.prevShoulder).toBe(true);
     expect(first.nextShoulder).toBe(true);
@@ -78,6 +83,7 @@ describe('GamepadManager', () => {
       4: { pressed: true },
       5: { pressed: true },
       7: { pressed: false, value: 0.1 },
+      8: { pressed: true },
       9: { pressed: true },
     });
     const second = gm.poll();
@@ -85,6 +91,8 @@ describe('GamepadManager', () => {
     expect(second.fireHeld).toBe(true);
     expect(second.toggleFirstPerson).toBe(false);
     expect(second.toggleDisaster).toBe(false);
+    expect(second.menuPressed).toBe(false);
+    expect(second.confirmPressed).toBe(false);
     expect(second.backOrUndo).toBe(false);
     expect(second.prevShoulder).toBe(false);
     expect(second.nextShoulder).toBe(false);
@@ -230,5 +238,73 @@ describe('GamepadManager', () => {
     expect(press2.secondaryPressed).toBe(true);
     expect(press2.actionXPressed).toBe(true);
     gm.dispose();
+  });
+
+  it('keeps reporting menu navigation edges while paused but blocks gameplay input', () => {
+    let pad = makePad([0, 0, 0, 0]);
+    const gm = new GamepadManager(() => [pad]);
+    gm.setPaused(true);
+    pad = makePad([0.9, 0, 0, 0], { 0: { pressed: true }, 9: { pressed: true }, 13: { pressed: true } });
+    const snap = gm.poll();
+    expect(snap.connected).toBe(true);
+    expect(snap.moveX).toBe(0);
+    expect(snap.jumpHeld).toBe(false);
+    expect(snap.confirmPressed).toBe(true);
+    expect(snap.menuPressed).toBe(true);
+    expect(snap.navDown).toBe(true);
+    expect(snap.navRight).toBe(true);
+    const held = gm.poll();
+    expect(held.confirmPressed).toBe(false);
+    expect(held.navRight).toBe(false);
+    gm.dispose();
+  });
+
+  it('treats a strong left-stick flick as a single navigation press', () => {
+    let pad = makePad([0, -0.9, 0, 0]);
+    const gm = new GamepadManager(() => [pad]);
+    expect(gm.poll().navUp).toBe(true);
+    expect(gm.poll().navUp).toBe(false);
+    pad = makePad([0, 0, 0, 0]);
+    gm.poll();
+    pad = makePad([0, -0.9, 0, 0]);
+    expect(gm.poll().navUp).toBe(true);
+    gm.dispose();
+  });
+
+  describe('pollPair', () => {
+    it('reports an empty secondary when only one pad is connected', () => {
+      const gm = new GamepadManager(() => [makePad([0.9, 0, 0, 0])]);
+      const { primary, secondary } = gm.pollPair();
+      expect(primary.connected).toBe(true);
+      expect(primary.moveX).toBeGreaterThan(0);
+      expect(secondary.connected).toBe(false);
+      gm.dispose();
+    });
+
+    it('assigns the two lowest slots to primary and secondary independently', () => {
+      const pads = [
+        withIndex(makePad([0.9, 0, 0, 0], { 0: { pressed: true } }), 0),
+        withIndex(makePad([-0.9, 0, 0, 0], { 2: { pressed: true } }), 1),
+      ];
+      const gm = new GamepadManager(() => pads);
+      const { primary, secondary } = gm.pollPair();
+      expect(primary.moveX).toBeGreaterThan(0);
+      expect(primary.jumpHeld).toBe(true);
+      expect(secondary.moveX).toBeLessThan(0);
+      expect(secondary.jumpHeld).toBe(false);
+      expect(secondary.actionXPressed).toBe(true);
+      expect(primary.actionXPressed).toBe(false);
+      gm.dispose();
+    });
+
+    it('keeps edge state per pad', () => {
+      let second = makePad([0, 0, 0, 0]);
+      const gm = new GamepadManager(() => [withIndex(makePad(), 0), withIndex(second, 1)]);
+      gm.pollPair();
+      second = makePad([0, 0, 0, 0], { 7: { pressed: true } });
+      expect(gm.pollPair().secondary.primaryPressed).toBe(true);
+      expect(gm.pollPair().secondary.primaryPressed).toBe(false);
+      gm.dispose();
+    });
   });
 });

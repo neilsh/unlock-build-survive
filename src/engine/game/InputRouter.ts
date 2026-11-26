@@ -11,7 +11,8 @@ import type { AudioSynth } from '../AudioSynth';
 import type { BuildController } from '../BuildController';
 import type { CompanionInput } from '../CompanionManager';
 import type { FirstPersonController } from '../FirstPersonController';
-import type { GamepadManager } from '../GamepadManager';
+import type { GamepadManager, GamepadSnapshot } from '../GamepadManager';
+import type { MenuNavigator } from '../MenuNavigator';
 import { buildMaterialPool, isCreativeSandbox, isSurvivalMode, lockedBySurvivalEnd } from './modeRules';
 
 export interface InputDeps {
@@ -26,7 +27,10 @@ export interface InputDeps {
     | 'eraseAtCrosshair'
   >;
   firstPerson: Pick<FirstPersonController, 'setGamepadInput' | 'lookAngles'>;
-  gamepad: Pick<GamepadManager, 'poll'>;
+  gamepad: Pick<GamepadManager, 'poll' | 'pollPair'>;
+  menuNav: Pick<MenuNavigator, 'move' | 'confirm' | 'cancel'>;
+  openMenu(): void;
+  resumeGame(): void;
   isModalOpen(): boolean;
   setTool(t: ToolType): void;
   setMaterial(m: MaterialType): void;
@@ -184,33 +188,87 @@ export class InputRouter {
     }
   }
 
+  /**
+   * Polls the gamepad(s) once per frame. Menus/modals capture the pad for navigation; otherwise, in solo
+   * the pad drives Player 1. In 2P a single pad drives Player 2, and with two pads connected pad 1 drives
+   * Player 1 (full solo controls) and pad 2 drives Player 2.
+   */
   handleGamepad(dt: number): void {
-    const gp = this.d.gamepad.poll();
+    const twoP = isTwoPlayerCoop(uiStore.getState().multiplayerMode);
+    let p1: GamepadSnapshot | null;
+    let p2: GamepadSnapshot | null = null;
+    if (twoP) {
+      const pair = this.d.gamepad.pollPair();
+      if (pair.secondary.connected) {
+        p1 = pair.primary;
+        p2 = pair.secondary;
+      } else {
+        p1 = null;
+        p2 = pair.primary;
+      }
+    } else {
+      p1 = this.d.gamepad.poll();
+    }
+    const pads = [p1, p2].filter((g): g is GamepadSnapshot => g !== null && g.connected);
+
     if (this.d.isModalOpen() || uiStore.getState().menuOpen) {
-      this.d.firstPerson.setGamepadInput(0, 0, false);
-      this.p2Gamepad = { moveX: 0, moveY: 0, jump: false, fire: false };
-      this.p2LookPad = 0;
+      this.releaseAllGamepadInput();
+      for (const gp of pads) this.handleMenuPad(gp);
       return;
     }
-    if (!gp.connected) {
-      this.applyMove(0, 0, false);
-      this.p2Gamepad = { moveX: 0, moveY: 0, jump: false, fire: false };
-      this.p2LookPad = 0;
+    if (pads.some((g) => g.menuPressed)) {
+      this.releaseAllGamepadInput();
+      this.d.openMenu();
       return;
     }
-    if (isTwoPlayerCoop(uiStore.getState().multiplayerMode)) {
-      this.applyMove(0, 0, false);
-      this.p2Gamepad = {
-        moveX: gp.moveX,
-        moveY: gp.moveY,
-        jump: gp.jumpHeld,
-        fire: gp.fireHeld || gp.primaryPressed,
-      };
-      this.p2LookPad = gp.lookX;
-      return;
-    }
+    if (!p1?.connected) this.applyMove(0, 0, false);
+    else this.handlePlayerOnePad(p1, dt);
+    this.handlePlayerTwoPad(p2?.connected ? p2 : null);
+  }
+
+  private releaseAllGamepadInput(): void {
+    this.d.firstPerson.setGamepadInput(0, 0, false);
     this.p2Gamepad = { moveX: 0, moveY: 0, jump: false, fire: false };
     this.p2LookPad = 0;
+  }
+
+  /** Menu/modal navigation: D-pad or stick moves focus, A clicks, B backs out, Start resumes. */
+  private handleMenuPad(gp: GamepadSnapshot): void {
+    const nav = this.d.menuNav;
+    if (gp.navUp) nav.move('up');
+    if (gp.navDown) nav.move('down');
+    if (gp.navLeft) nav.move('left');
+    if (gp.navRight) nav.move('right');
+    if (gp.confirmPressed) nav.confirm();
+    if (gp.backOrUndo) nav.cancel();
+    if (gp.menuPressed) {
+      if (this.d.isModalOpen()) nav.cancel();
+      else if (uiStore.getState().hasStarted) this.d.resumeGame();
+    }
+  }
+
+  /** Player 2's pad: movement, look and (in split-screen build mode) place / erase / tool / material. */
+  private handlePlayerTwoPad(gp: GamepadSnapshot | null): void {
+    if (!gp) {
+      this.p2Gamepad = { moveX: 0, moveY: 0, jump: false, fire: false };
+      this.p2LookPad = 0;
+      return;
+    }
+    this.p2Gamepad = {
+      moveX: gp.moveX,
+      moveY: gp.moveY,
+      jump: gp.jumpHeld,
+      fire: gp.fireHeld || gp.primaryPressed,
+    };
+    this.p2LookPad = gp.lookX;
+    if (gp.primaryPressed) this.p2Actions.push('place');
+    if (gp.secondaryPressed) this.p2Actions.push('erase');
+    if (gp.actionXPressed) this.p2Actions.push('nextTool');
+    if (gp.nextShoulder) this.p2Actions.push('nextMaterial');
+  }
+
+  /** Player 1 (solo, or pad 1 in 2P with two pads): movement, look, build/erase, cycling, test, undo. */
+  private handlePlayerOnePad(gp: GamepadSnapshot, dt: number): void {
     this.applyMove(gp.moveX, gp.moveY, gp.jumpHeld);
     if (gp.lookX !== 0 || gp.lookY !== 0) {
       this.d.firstPerson.lookAngles(gp.lookX * 2.4 * dt, gp.lookY * 2.0 * dt);

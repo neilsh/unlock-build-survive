@@ -332,6 +332,11 @@ export function HUD({ actions }: { actions: GameActions }) {
           className="pointer-events-auto fixed bottom-28 right-2 z-10 flex flex-col items-center gap-1.5 rounded-3xl bg-white/90 p-2.5 text-xs font-black shadow-xl backdrop-blur"
         >
           <span className="text-[10px] font-black uppercase tracking-wide text-cyan-800">P2 Controls</span>
+          {s.gamepadConnected && (
+            <span data-testid="p2-gamepad-hint" className="max-w-40 text-center text-[10px] text-cyan-900">
+              Gamepad: 1 pad = P2 · 2 pads = P1 + P2 · RT build · LT erase · X tool · RB mat
+            </span>
+          )}
           <div className="grid grid-cols-3 gap-1">
             <span />
             <button
@@ -470,9 +475,9 @@ export function HUD({ actions }: { actions: GameActions }) {
               {s.gamepadConnected
                 ? s.mode === 'build'
                   ? s.exploreMode
-                    ? 'L-Stick move · R-Stick look · A jump · RT door · Start test'
-                    : 'L-Stick move · R-Stick look · A jump · RT build · LT erase · X tool · LB/RB mat · Start test'
-                  : `L-Stick move · R-Stick look · A jump${s.equippedWeapon ? ' · RT/X fire' : ''} · B rewind`
+                    ? 'L-Stick move · R-Stick look · A jump · RT door · Select test · Start menu'
+                    : 'L-Stick move · R-Stick look · A jump · RT build · LT erase · X tool · LB/RB mat · B undo · Select test · Start menu'
+                  : `L-Stick move · R-Stick look · A jump${s.equippedWeapon ? ' · RT/X fire · LB/RB gear' : ''} · B rewind · Start menu`
                 : s.mode === 'build'
                   ? s.exploreMode
                     ? `WASD move · Space jump · Drag look · Click door${s.equippedWeapon ? ' · F fire' : ''}`

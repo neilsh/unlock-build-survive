@@ -37,6 +37,7 @@ import { FirstPersonController } from './FirstPersonController';
 import { P2Controller } from './game/P2Controller';
 import { PlayerBody } from './PlayerBody';
 import { GamepadManager } from './GamepadManager';
+import { MenuNavigator } from './MenuNavigator';
 import { PHYSICS_TUNING, PhysicsSim, type SimOptions } from './PhysicsSim';
 import { ProceduralAssets } from './ProceduralAssets';
 import { AudioSynth } from './AudioSynth';
@@ -128,6 +129,9 @@ export class Game implements GameActions, GameDebugApi {
       build: this.build,
       firstPerson: this.firstPerson,
       gamepad: this.gamepad,
+      menuNav: new MenuNavigator(),
+      openMenu: () => this.session.openMenu(),
+      resumeGame: () => this.session.resumeGame(),
       isModalOpen: () => this.openModals > 0,
       setTool: (t) => this.setTool(t),
       setMaterial: (m) => this.setMaterial(m),

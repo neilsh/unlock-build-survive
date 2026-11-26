@@ -41,8 +41,17 @@ export interface GamepadSnapshot {
   actionXPressed: boolean;
   /** Edge-triggered: Y (button 3). */
   toggleFirstPerson: boolean;
-  /** Edge-triggered: Start (button 9). */
+  /** Edge-triggered: Back/Select (button 8). Starts or rewinds a disaster test. */
   toggleDisaster: boolean;
+  /** Edge-triggered: Start (button 9). Opens or closes the pause menu. */
+  menuPressed: boolean;
+  /** Edge-triggered: A (button 0). Activates the focused menu item. */
+  confirmPressed: boolean;
+  /** Edge-triggered menu navigation: D-pad or left stick (also reported while the game is paused). */
+  navUp: boolean;
+  navDown: boolean;
+  navLeft: boolean;
+  navRight: boolean;
   /** Edge-triggered: B (button 1). */
   backOrUndo: boolean;
   /** Edge-triggered: LB (button 4). */
@@ -53,7 +62,14 @@ export interface GamepadSnapshot {
 
 const DEADZONE = 0.18;
 const TRIGGER_THRESHOLD = 0.35;
-const EDGE_BUTTONS = [1, 2, 3, 4, 5, 9] as const;
+const EDGE_BUTTONS = [0, 1, 2, 3, 4, 5, 8, 9, 12, 13, 14, 15] as const;
+/** Virtual "buttons" for left-stick menu navigation (edge-tracked alongside real buttons). */
+const STICK_NAV_THRESHOLD = 0.6;
+const STICK_UP = 100;
+const STICK_DOWN = 101;
+const STICK_LEFT = 102;
+const STICK_RIGHT = 103;
+const STICK_NAV_KEYS = [STICK_UP, STICK_DOWN, STICK_LEFT, STICK_RIGHT] as const;
 const TRIGGER_BUTTONS = [6, 7] as const;
 
 const EMPTY_SNAPSHOT: GamepadSnapshot = {
@@ -70,6 +86,12 @@ const EMPTY_SNAPSHOT: GamepadSnapshot = {
   actionXPressed: false,
   toggleFirstPerson: false,
   toggleDisaster: false,
+  menuPressed: false,
+  confirmPressed: false,
+  navUp: false,
+  navDown: false,
+  navLeft: false,
+  navRight: false,
   backOrUndo: false,
   prevShoulder: false,
   nextShoulder: false,
@@ -200,7 +222,8 @@ export class GamepadManager {
     return this.connected;
   }
 
-  private findActivePad(): PadEntry | null {
+  /** Connected pads in slot order; also forgets button history of pads that went away. */
+  private connectedEntries(): PadEntry[] {
     const pads = this.getGamepads();
     const entries: PadEntry[] = [];
     for (let i = 0; i < pads.length; i++) {
@@ -208,11 +231,17 @@ export class GamepadManager {
       if (!p || !p.connected) continue;
       entries.push({ slot: p.index ?? i, pad: p });
     }
+    entries.sort((a, b) => a.slot - b.slot);
 
     const connectedSlots = new Set(entries.map((e) => e.slot));
     for (const slot of this.prevButtonsByPad.keys()) {
       if (!connectedSlots.has(slot)) this.prevButtonsByPad.delete(slot);
     }
+    return entries;
+  }
+
+  private findActivePad(): PadEntry | null {
+    const entries = this.connectedEntries();
 
     if (entries.length === 0) {
       this.activePadIndex = null;
@@ -254,7 +283,23 @@ export class GamepadManager {
   poll(): GamepadSnapshot {
     const entry = this.syncConnection();
     if (!entry) return { ...EMPTY_SNAPSHOT };
+    return this.snapshotFor(entry);
+  }
 
+  /**
+   * Two-player polling. With two or more pads connected, the two lowest slots are `primary` (Player 1)
+   * and `secondary` (Player 2). With one pad, it is `primary` (the most recently active pad) and
+   * `secondary` is an empty, disconnected snapshot. Call this or `poll()` once per frame, not both.
+   */
+  pollPair(): { primary: GamepadSnapshot; secondary: GamepadSnapshot } {
+    const entries = this.connectedEntries();
+    const [first, second] = entries;
+    if (!first || !second) return { primary: this.poll(), secondary: { ...EMPTY_SNAPSHOT } };
+    this.syncConnection();
+    return { primary: this.snapshotFor(first), secondary: this.snapshotFor(second) };
+  }
+
+  private snapshotFor(entry: PadEntry): GamepadSnapshot {
     const { slot, pad } = entry;
     let prevButtons = this.prevButtonsByPad.get(slot);
     if (!prevButtons) {
@@ -275,10 +320,35 @@ export class GamepadManager {
       prevButtons.set(idx, down);
       edges.set(idx, down && !wasDown);
     }
+    const rawX = pad.axes[0] ?? 0;
+    const rawY = pad.axes[1] ?? 0;
+    const stickDown: Record<number, boolean> = {
+      [STICK_UP]: rawY < -STICK_NAV_THRESHOLD,
+      [STICK_DOWN]: rawY > STICK_NAV_THRESHOLD,
+      [STICK_LEFT]: rawX < -STICK_NAV_THRESHOLD,
+      [STICK_RIGHT]: rawX > STICK_NAV_THRESHOLD,
+    };
+    for (const idx of STICK_NAV_KEYS) {
+      const down = stickDown[idx] ?? false;
+      const wasDown = prevButtons.get(idx) ?? false;
+      prevButtons.set(idx, down);
+      edges.set(idx, down && !wasDown);
+    }
+    const e = (idx: number) => edges.get(idx) ?? false;
+    const menuFields = {
+      menuPressed: e(9),
+      confirmPressed: e(0),
+      backOrUndo: e(1),
+      navUp: e(12) || e(STICK_UP),
+      navDown: e(13) || e(STICK_DOWN),
+      navLeft: e(14) || e(STICK_LEFT),
+      navRight: e(15) || e(STICK_RIGHT),
+    };
 
     if (this.paused) {
       return {
         ...EMPTY_SNAPSHOT,
+        ...menuFields,
         connected: true,
         id: pad.id,
       };
@@ -304,8 +374,8 @@ export class GamepadManager {
       secondaryPressed: edges.get(6) ?? false,
       actionXPressed: edges.get(2) ?? false,
       toggleFirstPerson: edges.get(3) ?? false,
-      toggleDisaster: edges.get(9) ?? false,
-      backOrUndo: edges.get(1) ?? false,
+      toggleDisaster: e(8),
+      ...menuFields,
       prevShoulder: edges.get(4) ?? false,
       nextShoulder: edges.get(5) ?? false,
     };

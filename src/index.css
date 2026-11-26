@@ -42,3 +42,9 @@ body {
     animation: none;
   }
 }
+
+/* Gamepad menu navigation: visible focus ring even when the last input was not the keyboard. */
+[data-gamepad-focus] {
+  outline: 4px solid #f59e0b;
+  outline-offset: 3px;
+}
