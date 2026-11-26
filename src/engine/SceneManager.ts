@@ -10,6 +10,7 @@ import type { Azimuth, DisasterType, ProjectileKind, Vec3 } from '../types/bluep
 import { getIslandSize } from '../types/blueprint';
 import { QUALITY_PROFILES, type GraphicsQuality, type QualityProfile } from '../types/settings';
 import { mulberry32 } from '../utils/rng';
+import { createGameRenderer } from './createRenderer';
 import { DisasterEffects, type CustomDisasterFx } from './Effects';
 import { buildIslandScenery, dirtTexture, grassTexture } from './IslandScenery';
 
@@ -105,20 +106,12 @@ export class SceneManager {
 
   constructor(container: HTMLElement) {
     this.container = container;
-    this.domElement = document.createElement('canvas');
-    this.domElement.style.display = 'block';
-    this.domElement.style.width = '100%';
-    this.domElement.style.height = '100%';
-    this.domElement.style.touchAction = 'none';
-    container.appendChild(this.domElement);
-
-    // Phones: skip MSAA (a big multisampled buffer is what exhausts mobile GPU memory) and prefer the fast GPU.
+    // Phones: skip MSAA (a big multisampled buffer is what exhausts mobile GPU memory). If the browser refuses
+    // the context, createGameRenderer retries with plainer options and finally throws WebGLUnavailableError.
     const touch = window.matchMedia?.('(pointer: coarse)').matches ?? false;
-    this.renderer = new THREE.WebGLRenderer({
-      canvas: this.domElement,
-      antialias: !touch,
-      powerPreference: 'high-performance',
-    });
+    const { renderer, canvas } = createGameRenderer(container, touch);
+    this.renderer = renderer;
+    this.domElement = canvas;
     // A lost WebGL context (phone memory pressure, tab switch) must be allowed to come back, otherwise the
     // browser leaves a blank canvas with a broken-image icon.
     this.domElement.addEventListener('webglcontextlost', this.onContextLost);

@@ -17,6 +17,51 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- Safety net: if the game's script fails to load or run (old browser, blocked file), say so instead of
+         leaving a blank page. Plain ES5 so even old browsers can run it. -->
+    <script>
+      (function () {
+        function show(msg) {
+          setTimeout(function () {
+            var root = document.getElementById('root');
+            if (!root || root.firstChild || document.getElementById('ubs-boot-error')) return;
+            var d = document.createElement('div');
+            d.id = 'ubs-boot-error';
+            d.setAttribute('role', 'alert');
+            d.style.cssText =
+              'position:fixed;top:0;right:0;bottom:0;left:0;display:flex;flex-direction:column;align-items:center;' +
+              'justify-content:center;padding:24px;text-align:center;font:16px system-ui,sans-serif;color:#1e293b;' +
+              'background:#bfe6ff';
+            var h = document.createElement('h1');
+            h.style.cssText = 'font-size:22px;margin:0 0 12px';
+            h.textContent = "Disaster Village couldn't start";
+            var p = document.createElement('p');
+            p.style.cssText = 'margin:0 0 12px;max-width:28em';
+            p.textContent =
+              'Try reloading the page, or update your browser. If it keeps happening, show this to a grown-up.';
+            var s = document.createElement('p');
+            s.style.cssText = 'margin:0;font-size:12px;color:#64748b;max-width:28em;word-break:break-word';
+            s.textContent = msg;
+            d.appendChild(h);
+            d.appendChild(p);
+            d.appendChild(s);
+            document.body.appendChild(d);
+          }, 50);
+        }
+        window.addEventListener(
+          'error',
+          function (e) {
+            var t = e.target;
+            if (t && t !== window && t.tagName) show('Could not load ' + (t.src || t.href || t.tagName));
+            else show(String((e.error && e.error.message) || e.message || 'Unknown error'));
+          },
+          true,
+        );
+        window.addEventListener('unhandledrejection', function (e) {
+          show(String((e.reason && e.reason.message) || e.reason || 'Unknown error'));
+        });
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
