@@ -42,6 +42,8 @@ export class FirstPersonController {
   yaw = 0;
   pitch = -0.08;
   grounded = true;
+  private lookSensitivity = 1;
+  private invertLook = false;
   /** True while the player is inside a ladder block and holding on to it. */
   climbing = false;
 
@@ -162,6 +164,12 @@ export class FirstPersonController {
     }
   }
 
+  /** Player look preferences: speed multiplier (1 = default) and up/down inversion. */
+  setLookOptions(sensitivity: number, invert: boolean): void {
+    this.lookSensitivity = Number.isFinite(sensitivity) && sensitivity > 0 ? sensitivity : 1;
+    this.invertLook = invert;
+  }
+
   /** Pauses keyboard and pointer drag input (e.g. while an overlay modal is open). */
   setInputPaused(paused: boolean): void {
     this.paused = paused;
@@ -189,8 +197,9 @@ export class FirstPersonController {
 
   /** Updates view yaw and pitch by radian deltas, clamping pitch and syncing camera if enabled. */
   lookAngles(dYaw: number, dPitch: number): void {
-    this.yaw -= dYaw;
-    this.pitch = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, this.pitch - dPitch));
+    this.yaw -= dYaw * this.lookSensitivity;
+    const pitchDelta = dPitch * this.lookSensitivity * (this.invertLook ? -1 : 1);
+    this.pitch = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, this.pitch - pitchDelta));
     if (this.enabled) this.syncCamera();
   }
 

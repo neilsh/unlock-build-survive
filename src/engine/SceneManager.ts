@@ -8,6 +8,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import type { Azimuth, DisasterType, ProjectileKind, Vec3 } from '../types/blueprint';
 import { getIslandSize } from '../types/blueprint';
+import { QUALITY_PROFILES, type GraphicsQuality, type QualityProfile } from '../types/settings';
 import { mulberry32 } from '../utils/rng';
 import { DisasterEffects, type CustomDisasterFx } from './Effects';
 
@@ -102,6 +103,7 @@ export class SceneManager {
   private sun: THREE.DirectionalLight | null = null;
   private disposed = false;
   private splitScreen = false;
+  private quality: QualityProfile = QUALITY_PROFILES.high;
 
   constructor(container: HTMLElement) {
     this.container = container;
@@ -113,8 +115,8 @@ export class SceneManager {
     container.appendChild(this.domElement);
 
     this.renderer = new THREE.WebGLRenderer({ canvas: this.domElement, antialias: true });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    this.renderer.shadowMap.enabled = true;
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, this.quality.maxPixelRatio));
+    this.renderer.shadowMap.enabled = this.quality.shadows;
     // PCFSoftShadowMap was removed in recent three; PCF honours shadow.radius for soft edges.
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -370,6 +372,29 @@ export class SceneManager {
       pos.needsUpdate = true;
       this.water.geometry.computeVertexNormals();
     }
+  }
+
+  /** Applies a graphics quality preset live: pixel ratio cap, shadows on/off and shadow map size. */
+  setQuality(level: GraphicsQuality): void {
+    const next = QUALITY_PROFILES[level];
+    const prev = this.quality;
+    this.quality = next;
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, next.maxPixelRatio));
+    if (prev.shadows !== next.shadows) {
+      this.renderer.shadowMap.enabled = next.shadows;
+      // Materials compiled with/without shadow code must be rebuilt after toggling the shadow map.
+      this.scene.traverse((obj) => {
+        if (!(obj instanceof THREE.Mesh)) return;
+        const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+        for (const m of mats) m.needsUpdate = true;
+      });
+    }
+    if (this.sun && prev.shadowMapSize !== next.shadowMapSize) {
+      this.sun.shadow.mapSize.set(next.shadowMapSize, next.shadowMapSize);
+      this.sun.shadow.map?.dispose();
+      this.sun.shadow.map = null; // recreated at the new size on the next render
+    }
+    this.resize();
   }
 
   private resize(): void {

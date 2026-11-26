@@ -100,3 +100,23 @@ test.describe('gamepad (solo)', () => {
     expect(errors).toEqual([]);
   });
 });
+
+test.describe('gamepad settings', () => {
+  test('the pad opens Settings with A, changes a toggle, and B backs out', async ({ page }) => {
+    await installFakePad(page);
+    await page.goto('/');
+    await page.waitForFunction(() => Boolean(window.__GAME_DEBUG__), null, { timeout: 30_000 });
+    await page.getByTestId('menu-settings').focus();
+    await press(page, A, async () => {
+      await expect(page.getByTestId('settings-modal')).toBeVisible();
+    });
+    await expect(page.getByTestId('settings-gamepad-status')).toContainText('Fake Standard Pad');
+    await page.getByTestId('settings-invert-look').focus();
+    await press(page, A, async () => {
+      await expect(page.getByTestId('settings-invert-look')).toHaveAttribute('aria-pressed', 'true');
+    });
+    await press(page, 1, async () => {
+      await expect(page.getByTestId('settings-modal')).toBeHidden();
+    });
+  });
+});

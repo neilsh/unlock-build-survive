@@ -24,6 +24,7 @@ export function P2Panel({ actions }: { actions: GameActions }) {
     levelId: u.levelId,
     mode: u.mode,
     p2Hp: u.p2Hp,
+    showHpBars: u.settings.showHpBars,
     p2MaxHp: u.p2MaxHp,
     p2Tool: u.p2Tool,
     p2Material: u.p2Material,
@@ -50,7 +51,7 @@ export function P2Panel({ actions }: { actions: GameActions }) {
         <span className="rounded-full bg-cyan-300 px-2 py-0.5">P2</span>
         {creativeSandbox ? (
           <span>Creative · Invincible</span>
-        ) : (
+        ) : s.showHpBars ? (
           <>
             <Heart size={16} aria-hidden="true" className="fill-rose-500 text-rose-500" />
             <span>
@@ -63,7 +64,7 @@ export function P2Panel({ actions }: { actions: GameActions }) {
               />
             </div>
           </>
-        )}
+        ) : null}
       </div>
 
       {building && (

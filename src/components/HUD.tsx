@@ -55,6 +55,7 @@ import { VillagePanel } from './VillagePanel';
 import { MainMenu } from './MainMenu';
 import { P2Panel } from './P2Panel';
 import { ModsPanel } from './ModsPanel';
+import { SettingsModal } from './SettingsModal';
 import { ShopPanel } from './ShopPanel';
 import { TouchControls, useIsTouchDevice } from './TouchControls';
 
@@ -64,6 +65,7 @@ export function HUD({ actions }: { actions: GameActions }) {
   const [clearedFlash, setClearedFlash] = useState(0);
   const [levelsOpen, setLevelsOpen] = useState(false);
   const [shopOpen, setShopOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const flashing = s.damageFlash > clearedFlash;
   const isTouch = useIsTouchDevice();
 
@@ -474,7 +476,7 @@ export function HUD({ actions }: { actions: GameActions }) {
                 <Sparkles size={16} aria-hidden="true" className="text-amber-500" />
                 Creative · Invincible
               </span>
-            ) : (
+            ) : s.settings.showHpBars ? (
               <>
                 <span className="flex items-center gap-1.5 text-sm font-black">
                   <Heart size={18} aria-hidden="true" className="fill-rose-500 text-rose-500" />
@@ -487,7 +489,7 @@ export function HUD({ actions }: { actions: GameActions }) {
                   />
                 </div>
               </>
-            )}
+            ) : null}
             {s.equippedArmor && (
               <span className="inline-flex items-center gap-1 rounded-full bg-sky-100 px-2.5 py-0.5 text-sky-900">
                 <Shield size={13} aria-hidden="true" />
@@ -505,20 +507,22 @@ export function HUD({ actions }: { actions: GameActions }) {
                 {WEAPONS[s.equippedWeapon].label} · Fire (F)
               </button>
             )}
-            <span className="text-sky-700">
-              Controls:{' '}
-              {s.gamepadConnected
-                ? s.mode === 'build'
-                  ? s.exploreMode
-                    ? 'L-Stick move · R-Stick look · A jump · RT door · Select test · Start menu'
-                    : 'L-Stick move · R-Stick look · A jump · RT build · LT erase · X tool · LB/RB mat · B undo · Select test · Start menu'
-                  : `L-Stick move · R-Stick look · A jump${s.equippedWeapon ? ' · RT/X fire · LB/RB gear' : ''} · B rewind · Start menu`
-                : s.mode === 'build'
-                  ? s.exploreMode
-                    ? `WASD move · Space jump · Drag look · Click door${s.equippedWeapon ? ' · F fire' : ''}`
-                    : `WASD move · Space jump · Drag look · Click build${s.equippedWeapon ? ' · F fire' : ''}`
-                  : `WASD move · Space jump · Drag look${s.equippedWeapon ? ' · Click/F fire' : ''}`}
-            </span>
+            {s.settings.showHints && (
+              <span className="text-sky-700">
+                Controls:{' '}
+                {s.gamepadConnected
+                  ? s.mode === 'build'
+                    ? s.exploreMode
+                      ? 'L-Stick move · R-Stick look · A jump · RT door · Select test · Start menu'
+                      : 'L-Stick move · R-Stick look · A jump · RT build · LT erase · X tool · LB/RB mat · B undo · Select test · Start menu'
+                    : `L-Stick move · R-Stick look · A jump${s.equippedWeapon ? ' · RT/X fire · LB/RB gear' : ''} · B rewind · Start menu`
+                  : s.mode === 'build'
+                    ? s.exploreMode
+                      ? `WASD move · Space jump · Drag look · Click door${s.equippedWeapon ? ' · F fire' : ''}`
+                      : `WASD move · Space jump · Drag look · Click build${s.equippedWeapon ? ' · F fire' : ''}`
+                    : `WASD move · Space jump · Drag look${s.equippedWeapon ? ' · Click/F fire' : ''}`}
+              </span>
+            )}
           </div>
         )}
         <DisasterPanel actions={actions} />
@@ -528,7 +532,9 @@ export function HUD({ actions }: { actions: GameActions }) {
         actions={actions}
         onOpenChallenges={() => setLevelsOpen(true)}
         onOpenShop={() => setShopOpen(true)}
+        onOpenSettings={() => setSettingsOpen(true)}
       />
+      {settingsOpen && <SettingsModal actions={actions} onClose={() => setSettingsOpen(false)} />}
     </div>
   );
 }

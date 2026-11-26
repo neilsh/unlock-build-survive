@@ -11,6 +11,7 @@ import type {
 import type { ArmorId, GearId, GearSlot, WeaponId } from './gear';
 import type { GameMod } from '../mods/mods';
 import type { DisasterAddonFlags, DisasterAddonId } from './addons';
+import type { AppSettings } from './settings';
 
 export type PlayMode = 'creative' | 'survival' | 'village' | 'villageCreative';
 
@@ -91,6 +92,8 @@ export interface UIState extends DisasterAddonFlags {
   muted: boolean;
   /** Background music volume, 0..1. */
   musicVolume: number;
+  /** Player preferences from the Settings screen (everything but mute / music volume). */
+  settings: AppSettings;
   canUndo: boolean;
   azimuth: Azimuth;
   firstPerson: boolean;
@@ -146,6 +149,10 @@ export interface GameActions {
   setFirstPerson(on: boolean): void;
   setMuted(muted: boolean): void;
   setMusicVolume(volume: number): void;
+  /** Changes (and saves) any Settings-screen preferences, applying them live. */
+  updateSettings(patch: Partial<AppSettings>): void;
+  /** Restores every setting, including mute and music volume, to its default. */
+  resetSettings(): void;
   setModalOpen(open: boolean): void;
   openMenu(): void;
   resumeGame(): void;

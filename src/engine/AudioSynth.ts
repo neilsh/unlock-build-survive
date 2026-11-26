@@ -14,6 +14,9 @@ export class AudioSynth {
   private muted = false;
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
+  /** Sound-effects bus (wind, rumble, one-shots) feeding `master`; music bypasses it. */
+  private sfx: GainNode | null = null;
+  private sfxVolume = 1;
   private noise: AudioBuffer | null = null;
   private wind: { source: AudioBufferSourceNode; filter: BiquadFilterNode; gain: GainNode } | null = null;
   private lastOneShot = new Map<string, number>();
@@ -49,6 +52,12 @@ export class AudioSynth {
   setMusicVolume(volume: number): void {
     this.musicVolume = Math.min(1, Math.max(0, volume));
     this.music?.setVolume(this.musicVolume);
+  }
+
+  /** Sound effects volume 0..1 (wind, rumble, clacks, ...); independent of the music slider. */
+  setSfxVolume(volume: number): void {
+    this.sfxVolume = clamp(Number.isFinite(volume) ? volume : 1, 0, 1);
+    if (this.ctx && this.sfx) this.sfx.gain.setTargetAtTime(this.sfxVolume, this.ctx.currentTime, 0.05);
   }
 
   setMusicTheme(theme: ThemeName): void {
@@ -226,6 +235,7 @@ export class AudioSynth {
     this.wind = null;
     this.rumble = null;
     this.master = null;
+    this.sfx = null;
     this.noise = null;
     void this.ctx?.close().catch(() => {});
     this.ctx = null;
@@ -244,7 +254,11 @@ export class AudioSynth {
     master.gain.value = this.muted ? 0 : MASTER_VOLUME;
     master.connect(ctx.destination);
     this.ctx = ctx;
+    const sfx = ctx.createGain();
+    sfx.gain.value = this.sfxVolume;
+    sfx.connect(master);
     this.master = master;
+    this.sfx = sfx;
     this.music = new MusicPlayer(ctx, master);
     this.music.setTheme(this.musicTheme);
     this.music.setVolume(this.musicVolume);
@@ -261,8 +275,8 @@ export class AudioSynth {
   /** Context and output bus regardless of mute, or null when there is no Web Audio. */
   private bus(): Ready | null {
     const ctx = this.getContext();
-    if (!ctx || !this.master) return null;
-    return { ctx, master: this.master };
+    if (!ctx || !this.sfx) return null;
+    return { ctx, master: this.sfx };
   }
 
   private allowOneShot(key: string): boolean {

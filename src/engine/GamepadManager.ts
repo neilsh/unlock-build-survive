@@ -203,6 +203,12 @@ export class GamepadManager {
   private padId: string | null = null;
   private padInfo: GamepadInfo | null = null;
   private paused = false;
+  private deadzone = DEADZONE;
+
+  /** Stick deadzone (0..0.9) applied to movement and look; the default is 0.18. */
+  setDeadzone(deadzone: number): void {
+    this.deadzone = Number.isFinite(deadzone) ? Math.min(0.9, Math.max(0, deadzone)) : DEADZONE;
+  }
 
   constructor(getGamepads: () => ArrayLike<GamepadLike | null> = defaultGetGamepads) {
     this.getGamepads = getGamepads;
@@ -413,8 +419,8 @@ export class GamepadManager {
       };
     }
 
-    const stickX = applyDeadzone(pad.axes[0] ?? 0);
-    const stickY = applyDeadzone(-(pad.axes[1] ?? 0));
+    const stickX = applyDeadzone(pad.axes[0] ?? 0, this.deadzone);
+    const stickY = applyDeadzone(-(pad.axes[1] ?? 0), this.deadzone);
     const dpadX = (isPressed(pad, 15) ? 1 : 0) - (isPressed(pad, 14) ? 1 : 0);
     const dpadY = (isPressed(pad, 12) ? 1 : 0) - (isPressed(pad, 13) ? 1 : 0);
 
@@ -425,8 +431,8 @@ export class GamepadManager {
       id: pad.id,
       moveX: stickX !== 0 ? stickX : dpadX,
       moveY: stickY !== 0 ? stickY : dpadY,
-      lookX: applyDeadzone(pad.axes[2] ?? 0),
-      lookY: applyDeadzone(pad.axes[3] ?? 0),
+      lookX: applyDeadzone(pad.axes[2] ?? 0, this.deadzone),
+      lookY: applyDeadzone(pad.axes[3] ?? 0, this.deadzone),
       jumpHeld: isPressed(pad, 0),
       fireHeld: rtHeld || isPressed(pad, 2),
       primaryPressed: edges.get(7) ?? false,

@@ -13,6 +13,7 @@ import {
   Play,
   Rabbit,
   Save,
+  Settings,
   ShieldAlert,
   ShoppingBag,
   Snowflake,
@@ -148,10 +149,11 @@ interface MainMenuProps {
   actions: GameActions;
   onOpenChallenges: () => void;
   onOpenShop: () => void;
+  onOpenSettings: () => void;
 }
 
 /** Full-screen mode selection & pause menu over the live 3D island. */
-export function MainMenu({ actions, onOpenChallenges, onOpenShop }: MainMenuProps) {
+export function MainMenu({ actions, onOpenChallenges, onOpenShop, onOpenSettings }: MainMenuProps) {
   const s = useUIState();
   const [confirmingExit, setConfirmingExit] = useState(false);
   if (!s.menuOpen) return null;
@@ -192,6 +194,15 @@ export function MainMenu({ actions, onOpenChallenges, onOpenShop }: MainMenuProp
             )}
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              data-testid="menu-settings"
+              onClick={onOpenSettings}
+              className="inline-flex min-h-12 items-center gap-2 rounded-2xl bg-white px-5 py-2.5 text-sm font-black text-sky-950 shadow-md transition hover:bg-sky-100 active:scale-95"
+            >
+              <Settings size={18} aria-hidden="true" />
+              Settings
+            </button>
             {s.hasSave && (
               <button
                 type="button"

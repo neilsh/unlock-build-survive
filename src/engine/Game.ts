@@ -43,7 +43,9 @@ import { PHYSICS_TUNING, PhysicsSim, type SimOptions } from './PhysicsSim';
 import { disasterAddonSimOptions } from '../types/addons';
 import { ProceduralAssets } from './ProceduralAssets';
 import { AudioSynth } from './AudioSynth';
-import { loadAudioSettings, saveAudioSettings } from '../state/audioSettings';
+import { DEFAULT_AUDIO_SETTINGS, loadAudioSettings, saveAudioSettings } from '../state/audioSettings';
+import { loadSettings, saveSettings } from '../state/settings';
+import { DEFAULT_SETTINGS, sanitizeSettings, type AppSettings } from '../types/settings';
 import { SceneManager } from './SceneManager';
 import { CombatController } from './game/CombatController';
 import { InputRouter } from './game/InputRouter';
@@ -272,6 +274,7 @@ export class Game implements GameActions, GameDebugApi {
     this.audio.setMuted(saved.muted);
     this.audio.setMusicVolume(saved.musicVolume);
     uiStore.setState({ muted: saved.muted, musicVolume: saved.musicVolume });
+    this.applySettings(loadSettings());
 
     let menuOpen = uiStore.getState().menuOpen;
     this.audio.setMusicTheme(menuOpen ? 'menu' : 'game');
@@ -296,6 +299,15 @@ export class Game implements GameActions, GameDebugApi {
       for (const type of gestures) window.removeEventListener(type, onGesture, true);
       document.removeEventListener('visibilitychange', onVisibility);
     });
+  }
+
+  /** Pushes player preferences into the audio, look, gamepad and renderer subsystems and the UI store. */
+  private applySettings(settings: AppSettings) {
+    this.audio.setSfxVolume(settings.sfxVolume);
+    this.firstPerson.setLookOptions(settings.lookSensitivity, settings.invertLook);
+    this.gamepad.setDeadzone(settings.gamepadDeadzone);
+    this.scene.setQuality(settings.quality);
+    uiStore.setState({ settings });
   }
 
   private saveAudio() {
@@ -684,6 +696,17 @@ export class Game implements GameActions, GameDebugApi {
     this.audio.setMusicVolume(musicVolume);
     uiStore.setState({ musicVolume });
     this.saveAudio();
+  };
+  updateSettings: GameActions['updateSettings'] = (patch) => {
+    const next = sanitizeSettings(patch, uiStore.getState().settings);
+    this.applySettings(next);
+    saveSettings(next);
+  };
+  resetSettings: GameActions['resetSettings'] = () => {
+    this.setMuted(DEFAULT_AUDIO_SETTINGS.muted);
+    this.setMusicVolume(DEFAULT_AUDIO_SETTINGS.musicVolume);
+    this.applySettings({ ...DEFAULT_SETTINGS });
+    saveSettings(DEFAULT_SETTINGS);
   };
   setModalOpen: GameActions['setModalOpen'] = (open) => {
     this.openModals = Math.max(0, this.openModals + (open ? 1 : -1));
