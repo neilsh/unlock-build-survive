@@ -332,6 +332,20 @@ export const UNLOCKABLE_PRESETS: readonly UnlockablePresetName[] = [
 ];
 export const PRESET_ORDER: readonly PresetName[] = [...BASE_PRESETS, ...UNLOCKABLE_PRESETS];
 
+/**
+ * Village Island (rounds and Village Creative) allows only these four starter quick-builders,
+ * and only while Explore Mode is on.
+ */
+export const VILLAGE_PRESETS: readonly PresetName[] = BASE_PRESETS;
+
+export type VillagePresetBlock = 'needs-explore' | 'not-in-village';
+
+/** Why `preset` cannot be loaded in the Village right now, or null when it is allowed. */
+export function villagePresetBlock(preset: PresetName, exploreMode: boolean): VillagePresetBlock | null {
+  if (!exploreMode) return 'needs-explore';
+  return VILLAGE_PRESETS.includes(preset) ? null : 'not-in-village';
+}
+
 const PRESET_SET = new Set<string>(PRESET_ORDER);
 export function isPresetName(s: string): s is PresetName {
   return PRESET_SET.has(s);
