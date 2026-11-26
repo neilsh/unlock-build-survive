@@ -35,6 +35,7 @@ export const uiStore = createStore<UIState>({
   villagePopulation: 0,
   villageAlive: 0,
   villageBeds: 0,
+  villageBuilders: 0,
   villageBestRound: 0,
   villageOver: false,
   villageFailReason: null,

@@ -53,6 +53,8 @@ export interface UIState extends DisasterAddonFlags {
   villagePopulation: number;
   villageAlive: number;
   villageBeds: number;
+  /** Explore Mode builder crew on the island (0 unless Explore Mode is on in the Village). */
+  villageBuilders: number;
   villageBestRound: number;
   /** True once a villager was knocked out (any death loses the village). */
   villageOver: boolean;

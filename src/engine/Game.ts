@@ -60,6 +60,7 @@ import { ProgressionController } from './game/ProgressionController';
 import { SessionController } from './game/SessionController';
 import { VillageController } from './game/VillageController';
 import { VillagerAvatars } from './village/VillagerAvatars';
+import { BuilderAvatars } from './village/BuilderAvatars';
 
 /** Flood plane level when no flood is running (hidden below -1). */
 const WATER_HIDDEN = -2;
@@ -104,6 +105,7 @@ export class Game implements GameActions, GameDebugApi {
     });
     this.village = new VillageController({
       view: new VillagerAvatars(this.scene.scene),
+      builderView: new BuilderAvatars(this.scene.scene),
       getGraph: () => this.build.getGraph(),
       getFallenIds: () => this.physics.getFallenBlockIds(),
       getFallenPositions: () => this.fallenBlockPositions(),

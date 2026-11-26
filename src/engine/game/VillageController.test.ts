@@ -11,6 +11,7 @@ import {
   setIslandCells,
   type Vec3,
 } from '../../types/blueprint';
+import type { BuilderView } from '../village/BuilderAvatars';
 import type { VillagerView } from '../village/VillagerAvatars';
 import { SessionController } from './SessionController';
 import { isCreativeSandbox } from './modeRules';
@@ -281,5 +282,67 @@ describe('SessionController village flow', () => {
       expect(c.isActive()).toBe(false);
       expect(deps.build.loadGraph).toHaveBeenCalled();
     }
+  });
+});
+
+describe('VillageController builder crew (Explore Mode)', () => {
+  function makeWithBuilders() {
+    const graph = graphOf(HUT);
+    const builderView: BuilderView = { sync: vi.fn(), setVisible: vi.fn(), dispose: vi.fn() };
+    const c = new VillageController({
+      view: { sync: vi.fn(), setVisible: vi.fn(), dispose: vi.fn() },
+      builderView,
+      getGraph: () => graph,
+      getFallenIds: () => new Set<string>(),
+      getFallenPositions: () => [],
+      getViewers: () => [[0, 0, 0]],
+    });
+    return { c, builderView };
+  }
+
+  it('has no builders unless Explore Mode is on', () => {
+    uiStore.setState({ exploreMode: false });
+    const { c, builderView } = makeWithBuilders();
+    c.enter();
+    runFor(c, 1);
+    expect(uiStore.getState().villageBuilders).toBe(0);
+    expect(builderView.sync).not.toHaveBeenCalled();
+  });
+
+  it('four builders move in when Explore Mode turns on and leave when it turns off', () => {
+    uiStore.setState({ exploreMode: true });
+    const { c, builderView } = makeWithBuilders();
+    c.enter();
+    runFor(c, 1);
+    expect(uiStore.getState().villageBuilders).toBe(4);
+    expect(c.getCrew().getBuilders()).toHaveLength(4);
+    expect(builderView.setVisible).toHaveBeenLastCalledWith(true);
+    uiStore.setState({ exploreMode: false });
+    runFor(c, 1);
+    expect(uiStore.getState().villageBuilders).toBe(0);
+    expect(builderView.setVisible).toHaveBeenLastCalledWith(false);
+  });
+
+  it('the crew goes to work when the build changes in Explore Mode', () => {
+    uiStore.setState({ exploreMode: true });
+    const { c } = makeWithBuilders();
+    c.enter();
+    runFor(c, 1);
+    c.onBuildChanged();
+    expect(
+      c
+        .getCrew()
+        .getBuilders()
+        .some((b) => b.state === 'walk' || b.state === 'build'),
+    ).toBe(true);
+  });
+
+  it('leaving the village sends the crew home', () => {
+    uiStore.setState({ exploreMode: true });
+    const { c } = makeWithBuilders();
+    c.enter();
+    runFor(c, 1);
+    c.leave();
+    expect(uiStore.getState().villageBuilders).toBe(0);
   });
 });

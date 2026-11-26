@@ -16,6 +16,8 @@ import {
 } from '../../levels/village';
 import { uiStore } from '../../state/store';
 import type { BlueprintGraph, BuildConstraints, Strength, Vec3 } from '../../types/blueprint';
+import { BUILDER_COUNT, BuilderCrew } from '../village/BuilderCrew';
+import type { BuilderView } from '../village/BuilderAvatars';
 import { VillageSim } from '../village/VillageSim';
 import type { VillagerView } from '../village/VillagerAvatars';
 
@@ -28,6 +30,8 @@ export interface VillageDeps {
   getFallenPositions(): Vec3[];
   /** Where the players stand, for HP-bar range checks. */
   getViewers(): Vec3[];
+  /** Renders the Explore Mode builder crew; left out in tests that do not need it. */
+  builderView?: BuilderView;
   constraints?: BuildConstraints;
 }
 
@@ -39,6 +43,9 @@ export class VillageController {
   private lastSignature = '';
   /** Village Creative: nobody loses, rounds are off, and knocked-out villagers stand back up on rewind. */
   private sandbox = false;
+  /** Explore Mode: four quick-builders live on the island and hammer on each quick-build. */
+  private readonly crew = new BuilderCrew();
+  private crewOn = false;
 
   constructor(private readonly d: VillageDeps) {}
 
@@ -57,6 +64,7 @@ export class VillageController {
   /** Begins a fresh village at round `round` (the island must already be switched to Village size). */
   enter(round = 1, population = START_POPULATION, sandbox = false): void {
     this.sandbox = sandbox;
+    this.setCrew(false);
     this.active = true;
     this.running = false;
     this.sim.setStructure(this.d.getGraph());
@@ -76,11 +84,15 @@ export class VillageController {
     this.active = false;
     this.running = false;
     this.d.view.setVisible(false);
+    this.setCrew(false);
   }
 
   /** The build changed in build mode: villagers re-read the walls and shelters. */
   onBuildChanged(): void {
-    if (!this.active || this.running) return;
+    if (!this.active) return;
+    // In Explore Mode a build change is a quick-builder: the crew walks over and hammers on it.
+    if (this.crewOn) this.crew.setStructure(this.d.getGraph(), true);
+    if (this.running) return;
     this.sim.setStructure(this.d.getGraph());
     this.publish(true);
   }
@@ -131,6 +143,12 @@ export class VillageController {
     }
     this.sim.update(dt);
     this.d.view.sync(this.sim.getVillagers(), this.d.getViewers(), this.time);
+    const explore = uiStore.getState().exploreMode;
+    if (explore !== this.crewOn) this.setCrew(explore);
+    if (this.crewOn) {
+      this.crew.update(dt);
+      this.d.builderView?.sync(this.crew.getBuilders(), this.time);
+    }
     this.publish(false);
     const dead = this.sim.firstDead();
     if (this.running && dead && !this.sandbox) {
@@ -161,6 +179,23 @@ export class VillageController {
   dispose(): void {
     this.active = false;
     this.d.view.dispose();
+    this.d.builderView?.dispose();
+  }
+
+  getCrew(): BuilderCrew {
+    return this.crew;
+  }
+
+  /** Calls the builder crew in (Explore Mode) or sends it home; they only exist while exploring. */
+  private setCrew(on: boolean): void {
+    this.crewOn = on;
+    if (on) {
+      this.crew.setStructure(this.d.getGraph());
+      this.crew.reset();
+      this.d.builderView?.sync(this.crew.getBuilders(), this.time);
+    }
+    this.d.builderView?.setVisible(on);
+    uiStore.setState({ villageBuilders: on ? BUILDER_COUNT : 0 });
   }
 
   isRunning(): boolean {

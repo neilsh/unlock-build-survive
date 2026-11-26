@@ -56,6 +56,26 @@ test.describe('village island', () => {
     await expect(page.getByTestId('village-villagers')).toContainText('3 / 3');
   });
 
+  test('four quick-builders live on the island only in Explore Mode', async ({ page }) => {
+    await openGame(page);
+    await page.getByTestId('menu-village').click();
+    await expect(page.getByTestId('village-panel')).toBeVisible();
+    await expect(page.getByTestId('village-builders')).toHaveCount(0);
+  });
+
+  test('Explore Mode brings four quick-builders into the village', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', (err) => errors.push(err.message));
+    await openGame(page);
+    await page.getByTestId('menu-explore-addon').click();
+    await page.getByTestId('menu-village').click();
+    await expect(page.getByTestId('village-builders')).toContainText('4');
+    await page.getByTestId('preset-house').click();
+    await page.waitForTimeout(1500);
+    await expect(page.getByTestId('village-builders')).toContainText('4');
+    expect(errors).toEqual([]);
+  });
+
   test('a village with enough shelter clears the round and moves on', async ({ page }) => {
     await openGame(page);
     await page.getByTestId('menu-village').click();

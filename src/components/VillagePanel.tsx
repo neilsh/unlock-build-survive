@@ -1,4 +1,4 @@
-import { Home, Users } from 'lucide-react';
+import { HardHat, Home, Users } from 'lucide-react';
 import { useLevelInfo } from '../levels/levelStore';
 import { VILLAGE_CONSTRAINTS } from '../levels/village';
 import { useUIState } from '../state/store';
@@ -8,6 +8,7 @@ export function VillagePanel() {
   const s = useUIState((u) => ({
     alive: u.villageAlive,
     beds: u.villageBeds,
+    builders: u.villageBuilders,
     best: u.villageBestRound,
     cleared: u.villageCleared,
     mode: u.mode,
@@ -38,6 +39,12 @@ export function VillagePanel() {
         Shelter beds: {s.beds}
         {needBeds ? ' (not enough for everyone!)' : ''}
       </p>
+      {s.builders > 0 && (
+        <p data-testid="village-builders" className="flex items-center gap-1.5 font-bold text-teal-800">
+          <HardHat size={15} aria-hidden="true" />
+          Quick-Builders on the island: {s.builders}
+        </p>
+      )}
       {max !== undefined && (
         <p data-testid="block-count" className="font-bold text-sky-900">
           Blocks: {info.blocksUsed} / {max}
