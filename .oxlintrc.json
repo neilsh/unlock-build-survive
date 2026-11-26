@@ -28,8 +28,7 @@
     "coverage",
     "node_modules",
     "playwright-report",
-    "test-results",
-    "playwright.config.ts"
+    "test-results"
   ],
   "rules": {
     "no-unused-vars": [
